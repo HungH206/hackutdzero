@@ -49,6 +49,7 @@ Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in
 - [x] [Avin] Hover and click linking between queue and map
 - [x] [Avin] Event timeline and coverage (equity) meter
 - [x] [Avin] Fire alerts for anomalous units (flame and temperature)
+- [ ] [Aryan] Graphics revamp of every dashboard, one PR per screen (see `docs/GRAPHICS_HANDOFF.md`): main dashboard first (3D neighborhood model), then Houses, Overview, CBRE
 
 ## P1: wall screen and node firmware (`/firmware`)
 - [ ] Read the M5GO over USB and confirm which sensors the kit has
