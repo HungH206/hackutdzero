@@ -34,7 +34,7 @@ html:has(.ag), body:has(.ag) { background: var(--bg); }
 .ag-cap { margin-bottom: var(--s-2); }
 .ag-head { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .ag-h1 { font: var(--t-headline); margin: 0; }
-.ag-share { display: flex; flex-direction: column; gap: 2px; }
+.ag-share { display: flex; flex-direction: column; gap: 2px; height: auto; min-height: 0; padding: var(--s-3) var(--s-4); overflow: visible; }
 .ag-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
 .ag-big { font: var(--t-title); font-variant-numeric: tabular-nums; }
 .ag-mid { font: var(--t-callout); font-weight: 600; }

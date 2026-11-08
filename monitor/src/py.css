@@ -4,28 +4,6 @@
    map, analytics and log screens match. */
 
 .py-app {
-  --bg: #030707;
-  --panel: rgba(12, 26, 27, 0.8);
-  --panel-solid: #0b1819;
-  --panel-2: rgba(160, 220, 210, 0.06);
-  --panel-3: rgba(160, 220, 210, 0.11);
-  --line: rgba(160, 220, 210, 0.12);
-  --line-2: rgba(160, 220, 210, 0.22);
-  --text: #eef3f1;
-  --muted: #9db1ad;
-  --faint: #62736f;
-  --accent: #e8c98a;
-  --accent-ink: #1d1404;
-  --low: #5fd3a6;
-  --guarded: #e9c46a;
-  --high: #f0a35e;
-  --critical: #ff6b81;
-  --ok: #6fdcb0;
-  --assisted: #7cc0ff;
-  --blue: #7cc0ff;
-  --rail-w: 0px;
-  --top-h: 52px;
-  --cond: 'Roboto Condensed', 'Outfit Variable', sans-serif;
   background: var(--bg);
 }
 
@@ -33,8 +11,8 @@
 .py-bg {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 55% 50% at 50% 46%, rgba(46, 86, 82, 0.55) 0%, rgba(24, 50, 48, 0.35) 38%, rgba(0, 0, 0, 0) 72%),
-    radial-gradient(ellipse 90% 80% at 62% 30%, #10211f 0%, #081211 45%, #030606 80%, #010202 100%);
+    radial-gradient(ellipse 55% 50% at 50% 46%, var(--surface-1) 0%, var(--surface-2) 38%, transparent 72%),
+    radial-gradient(ellipse 90% 80% at 62% 30%, var(--surface-1) 0%, var(--surface-1) 45%, var(--surface-1) 80%, var(--surface-1) 100%);
 }
 .py-bg::after {
   content: ''; position: absolute; inset: 0; opacity: 0.09; mix-blend-mode: overlay;
@@ -42,65 +20,66 @@
 }
 .py-bg::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, var(--surface-1) 100%);
 }
 
 /* ---------- header ---------- */
 .py-head {
   position: absolute; z-index: var(--z-top); top: 0; left: 0; right: 0; height: 68px;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 22px;
-  background: linear-gradient(180deg, rgba(2, 6, 6, 0.85), rgba(2, 6, 6, 0));
+  background: var(--mat-chrome); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+  border-bottom: 1px solid var(--separator);
 }
 .py-brand { position: relative; display: flex; align-items: center; gap: 12px; }
-.py-sq { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #d9e4e1; background: rgba(160, 220, 210, 0.06); border: 1px solid var(--line); }
+.py-sq { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--label); background: var(--surface-2); border: 1px solid var(--line); }
 .py-sq:hover { background: var(--panel-3); }
-.py-logo { flex: none; }
+.py-logo { flex: none; width: 28px; height: 28px; border-radius: 8px; background: var(--action); color: var(--on-action); display: grid; place-items: center; }
 .py-brand-t { display: flex; flex-direction: column; line-height: 1.1; }
-.py-brand-t b { color: #e8c98a; font-weight: 600; font-size: 15px; }
-.py-brand-t span { color: #d9e4e1; font-size: 13px; }
+.py-brand-t b { color: var(--label); font-weight: 600; font-size: 15px; }
+.py-brand-t span { color: var(--label-3); font-size: 12px; }
 .py-menu {
   position: absolute; top: 46px; left: 0; z-index: var(--z-pop); width: 220px; padding: 6px; border-radius: 14px;
-  background: rgba(8, 18, 19, 0.97); border: 1px solid var(--line-2); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  background: var(--surface-1); border: 1px solid var(--line-2); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
   display: flex; flex-direction: column;
 }
-.py-menu button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: var(--muted); font-size: 14px; text-align: left; }
-.py-menu button:hover { background: var(--panel-2); color: var(--text); }
+.py-menu button, .py-menu .py-menu-link { text-decoration: none; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: var(--muted); font-size: 14px; text-align: left; }
+.py-menu button:hover, .py-menu .py-menu-link:hover { background: var(--panel-2); color: var(--text); }
 .py-menu button.on { color: #e8c98a; background: var(--panel-3); }
 
 .py-tools { display: flex; gap: 8px; }
 .py-group {
   position: relative; display: flex; padding: 4px; gap: 2px; border-radius: 12px;
-  background: linear-gradient(180deg, #0f2223, #0a1717); border: 1px solid rgba(160, 220, 210, 0.16);
+  background: linear-gradient(180deg, var(--surface-1), var(--surface-1)); border: 1px solid var(--separator);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 18px rgba(0, 0, 0, 0.4);
 }
-.py-group > button { position: relative; width: 40px; height: 36px; border-radius: 9px; display: grid; place-items: center; color: #cfdcd9; transition: background 0.2s, color 0.2s; }
-.py-group > button:hover:not(:disabled) { background: rgba(160, 220, 210, 0.1); color: #fff; }
-.py-group > button.on { background: #040a0a; color: #fff; box-shadow: inset 0 0 0 1px rgba(160, 220, 210, 0.16); }
+.py-group > button { position: relative; width: 40px; height: 36px; border-radius: 9px; display: grid; place-items: center; color: var(--label); transition: background 0.2s, color 0.2s; }
+.py-group > button:hover:not(:disabled) { background: var(--surface-2); color: var(--label); }
+.py-group > button.on { background: var(--surface-1); color: var(--label); box-shadow: inset 0 0 0 1px rgba(160, 220, 210, 0.16); }
 .py-group > button:disabled { opacity: 0.35; }
 .py-dot {
   position: absolute; top: 1px; right: 2px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px;
   background: #d8a352; color: #1d1404; font-size: 9px; font-weight: 700; display: grid; place-items: center;
 }
-.py-dot.red { background: var(--critical); color: #fff; }
+.py-dot.red { background: var(--critical); color: var(--label); }
 .py-pop {
   position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: var(--z-pop); width: 220px; padding: 6px;
-  border-radius: 12px; background: rgba(8, 18, 19, 0.97); border: 1px solid var(--line-2); display: flex; flex-direction: column;
+  border-radius: 12px; background: var(--surface-1); border: 1px solid var(--line-2); display: flex; flex-direction: column;
 }
 .py-pop button { text-align: left; padding: 9px 12px; border-radius: 8px; font-size: 13px; color: var(--muted); }
 .py-pop button:hover { background: var(--panel-2); color: var(--text); }
-.py-pop button.on { color: #e8c98a; }
+.py-pop button.on { color: var(--label-2); }
 
 .py-right { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
 .py-app .demo-btn {
-  height: 34px; padding: 0 14px; border-radius: 8px; background: transparent; color: #f4efe4; font-weight: 500;
-  border: 1px solid rgba(232, 201, 138, 0.75); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  height: 34px; padding: 0 14px; border-radius: 8px; background: transparent; color: var(--label); font-weight: 500;
+  border: 1px solid var(--separator); box-shadow: none;
 }
-.py-app .demo-btn:hover, .py-app .demo-btn.on { background: rgba(232, 201, 138, 0.1); filter: none; }
-.py-app .demo-pop { background: rgba(8, 18, 19, 0.97); border-color: var(--line-2); }
-.py-app .trig svg { color: #e8c98a; }
-.py-clock { font-size: 12px; color: #cfdcd9; padding: 0 4px; white-space: nowrap; }
-.py-clock em { font-style: normal; margin-left: 6px; color: #e8c98a; }
-.py-round { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #cfdcd9; background: rgba(160, 220, 210, 0.06); border: 1px solid var(--line); }
+.py-app .demo-btn:hover, .py-app .demo-btn.on { background: var(--surface-2); filter: none; }
+.py-app .demo-pop { background: var(--surface-1); border-color: var(--line-2); }
+.py-app .trig svg { color: var(--label-2); }
+.py-clock { font-size: 12px; color: var(--label); padding: 0 4px; white-space: nowrap; }
+.py-clock em { font-style: normal; margin-left: 6px; color: var(--label-2); }
+.py-round { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--label); background: var(--surface-2); border: 1px solid var(--line); }
 .py-round:hover { background: var(--panel-3); }
 .py-conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .py-conn i { width: 7px; height: 7px; border-radius: 50%; background: var(--guarded); }
@@ -111,19 +90,19 @@
 .py-graph { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .py-graph:active { cursor: grabbing; }
 .py-node { cursor: pointer; outline: none; }
-.py-node:focus-visible > circle:first-child { stroke: #e8c98a; stroke-width: 1.5; }
-.py-label { font-family: var(--cond); font-size: 15px; fill: #f3efe6; letter-spacing: 0.005em; paint-order: stroke; stroke: rgba(3, 8, 8, 0.75); stroke-width: 3px; }
+.py-node:focus-visible > circle:first-child { stroke: var(--focus); stroke-width: 1.5; }
+.py-label { font-family: var(--cond); font-size: 15px; fill: var(--label); letter-spacing: 0.005em; paint-order: stroke; stroke: var(--separator); stroke-width: 3px; }
 .py-label.big { font-size: 22px; font-weight: 600; }
-.py-tag { fill: rgba(52, 60, 60, 0.92); stroke: rgba(255, 255, 255, 0.12); stroke-width: 0.6; }
-.py-tag-t { font-family: var(--cond); font-size: 10.5px; fill: #f1ece2; text-anchor: middle; font-weight: 600; }
+.py-tag { fill: var(--surface-2); stroke: var(--separator); stroke-width: 0.6; }
+.py-tag-t { font-family: var(--cond); font-size: 10.5px; fill: var(--label); text-anchor: middle; font-weight: 600; }
 .py-tag-t.lg { font-size: 13px; letter-spacing: 0.04em; }
-.py-tag-t.sm { font-size: 8px; letter-spacing: 0.03em; }
-.py-tag-u { fill: #b8c4c1; font-weight: 400; }
-.gold { fill: #e8c98a; }
-.py-badge { fill: #2a2350; stroke: rgba(190, 170, 255, 0.45); stroke-width: 0.6; }
+.py-tag-t.sm { font-size: 11px; letter-spacing: 0.03em; }
+.py-tag-u { fill: var(--label-2); font-weight: 400; }
+.gold { fill: var(--label-2); }
+.py-badge { fill: #2a2350; stroke: var(--separator); stroke-width: 0.6; }
 .py-badge.crit { fill: #4a1626; stroke: rgba(255, 140, 160, 0.6); }
-.py-badge-t { font-family: var(--cond); font-size: 8px; fill: #fff; text-anchor: middle; font-weight: 600; }
-.py-hover { font-family: var(--cond); font-size: 12px; fill: #fff; text-anchor: middle; paint-order: stroke; stroke: #030707; stroke-width: 4px; pointer-events: none; }
+.py-badge-t { font-family: var(--cond); font-size: 8px; fill: var(--label); text-anchor: middle; font-weight: 600; }
+.py-hover { font-family: var(--cond); font-size: 12px; fill: var(--label); text-anchor: middle; paint-order: stroke; stroke: var(--separator); stroke-width: 4px; pointer-events: none; }
 .py-pulse { fill: none; stroke: #ff6b81; stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: pulse 2s ease-out infinite; }
 .py-corona { transform-box: fill-box; transform-origin: center; animation: spin 90s linear infinite; }
 .py-travel { animation: travel 2.6s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
@@ -134,24 +113,24 @@
 /* ---------- time rail ---------- */
 .py-rail { position: absolute; z-index: 2; left: 0; top: 76px; bottom: 120px; width: 130px; pointer-events: none; }
 .py-rail svg { width: 100%; height: 100%; }
-.py-rail-t { font-family: var(--cond); font-size: 13px; fill: #9db1ad; }
+.py-rail-t { font-family: var(--cond); font-size: 13px; fill: var(--label-2); }
 .py-rail-idle { font-family: var(--cond); font-size: 13px; fill: #62736f; letter-spacing: 0.06em; text-transform: uppercase; }
 .py-rail-now { fill: rgba(10, 22, 22, 0.92); stroke: #d9c08d; stroke-width: 1.4; }
-.py-rail-now-t { font-family: var(--cond); font-size: 19px; fill: #fff; }
+.py-rail-now-t { font-family: var(--cond); font-size: 19px; fill: var(--label); }
 
 /* ---------- legend ---------- */
 .py-legend {
   position: absolute; z-index: 5; left: 56px; bottom: 26px; width: 190px; padding: 12px 14px; border-radius: 12px;
-  background: rgba(10, 22, 23, 0.82); border: 1px solid var(--line); backdrop-filter: blur(10px);
+  background: var(--surface-1); border: 1px solid var(--line); backdrop-filter: blur(10px);
 }
 .py-legend.closed { width: auto; padding: 8px 12px; }
 .py-legend-h { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 10px; letter-spacing: 0.12em; color: var(--muted); }
-.py-legend ul { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; font-size: 12.5px; color: #d9e4e1; }
+.py-legend ul { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; font-size: 12.5px; color: var(--label); }
 .py-legend li { display: flex; align-items: center; gap: 8px; }
-.py-chip-orb { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 6px 0 1px; border-radius: 8px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--line); flex: none; min-width: 38px; }
+.py-chip-orb { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 6px 0 1px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line); flex: none; min-width: 38px; }
 .py-chip-orb b { font-size: 9px; font-weight: 500; color: var(--muted); }
 .py-legend-stat { color: var(--muted); padding-top: 4px; }
-.py-legend-stat span { margin-left: auto; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: rgba(52, 60, 60, 0.9); color: #f1ece2; }
+.py-legend-stat span { margin-left: auto; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface-1); color: var(--label); }
 
 /* ---------- bottom: analysis + command ---------- */
 .py-bottom {
@@ -161,137 +140,139 @@
 .py-bottom.shifted { left: calc(50% - 220px); width: min(700px, calc(100% - 760px)); }
 .py-analysis {
   position: relative; border-radius: 26px; padding: 16px; display: flex; flex-direction: column; gap: 10px;
-  background: rgba(6, 14, 15, 0.9); border: 1px solid rgba(160, 220, 210, 0.14); backdrop-filter: blur(16px);
+  background: var(--surface-1); border: 1px solid var(--separator); backdrop-filter: blur(16px);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
-.py-an-h { display: flex; justify-content: space-between; align-items: center; padding: 0 6px; font-size: 16px; letter-spacing: 0.03em; color: #7fd6d0; }
-.py-an-h b { color: #e8c98a; font-weight: 600; }
+.py-an-h { display: flex; justify-content: space-between; align-items: center; padding: 0 6px; font-size: 16px; letter-spacing: 0.03em; color: var(--label-2); }
+.py-an-h b { color: var(--label-2); font-weight: 600; }
 .py-an-ctl { display: flex; gap: 6px; align-items: center; }
-.py-pill { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: #e6eeee; font-size: 12px; }
-.py-x { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #e6eeee; border: 1px solid rgba(255, 255, 255, 0.25); }
-.py-x:hover { background: rgba(255, 255, 255, 0.08); }
+.py-pill { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--surface-2); color: var(--label); font-size: 12px; }
+.py-x { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--label); border: 1px solid var(--separator); }
+.py-x:hover { background: var(--surface-2); }
 .flip { transform: rotate(180deg); }
 .py-an-list { display: flex; flex-direction: column; gap: 8px; }
 .py-concern {
-  text-align: left; padding: 13px 18px; border-radius: 16px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left; padding: 13px 18px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--separator);
   display: flex; flex-direction: column; gap: 5px; transition: background 0.2s, border-color 0.2s;
 }
-.py-concern:hover { background: rgba(255, 255, 255, 0.075); }
+.py-concern:hover { background: var(--surface-2); }
 .py-concern.crit {
   background: radial-gradient(120% 140% at 30% 0%, rgba(255, 110, 130, 0.28), rgba(255, 110, 130, 0.04) 70%);
   border-color: rgba(255, 150, 165, 0.75); box-shadow: 0 0 28px rgba(255, 100, 120, 0.22), inset 0 0 20px rgba(255, 120, 140, 0.08);
 }
-.py-concern.warn { border-color: rgba(233, 196, 106, 0.4); }
+.py-concern.warn { border-color: var(--separator); }
 .py-c-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.py-c-title { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: #f6f1ea; }
-.py-c-title i { font-style: normal; color: #ff8fa6; font-size: 20px; font-weight: 300; }
-.py-concern.warn .py-c-title i { color: #e9c46a; }
-.py-concern.info .py-c-title i { color: #7fd6d0; }
-.py-c-ref { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #d9e4e1; white-space: nowrap; }
-.py-c-text { font-size: 14px; color: #b8c6c4; }
+.py-c-title { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: var(--label); }
+.py-c-title i { font-style: normal; color: var(--label-2); font-size: 20px; font-weight: 300; }
+.py-concern.warn .py-c-title i { color: var(--label-2); }
+.py-concern.info .py-c-title i { color: var(--label-2); }
+.py-c-ref { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--label); white-space: nowrap; }
+.py-c-text { font-size: 14px; color: var(--label-2); }
 
 .py-app .dock {
   position: relative; left: auto; right: auto; bottom: auto; margin: 0; max-width: none; border-radius: 28px; padding: 10px;
-  background: linear-gradient(180deg, rgba(18, 40, 40, 0.92), rgba(8, 20, 21, 0.94));
-  border: 1px solid rgba(160, 220, 210, 0.2); backdrop-filter: blur(18px);
+  background: linear-gradient(180deg, var(--surface-1), var(--surface-1));
+  border: 1px solid var(--separator); backdrop-filter: blur(18px);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .py-app .screen-live .dock, .py-app.screen-live .dock {
   position: absolute; bottom: var(--gap); left: calc(var(--queue-w) + var(--gap) * 3); right: var(--gap); margin: 0 auto; max-width: 760px;
 }
 .py-app.screen-live.has-detail .dock { right: calc(var(--detail-w) + var(--gap) * 2); }
-.py-app .dstat-lbl { color: #d9e4e1; font-size: 12px; }
-.py-app .dstat-val svg { color: #9fd6cf; }
-.py-app .dstat + .dstat { border-left-color: rgba(160, 220, 210, 0.14); }
+.py-app .dstat-lbl { color: var(--label); font-size: 12px; }
+.py-app .dstat-val svg { color: var(--label-2); }
+.py-app .dstat + .dstat { border-left-color: var(--separator); }
 .py-app .dstat-val b { font-family: var(--cond); font-size: 22px; font-weight: 400; }
 .py-app .dock-input { background: linear-gradient(180deg, #f2f5f4, #dfe6e4); height: 52px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35); }
-.py-app .dock-input:focus-within { box-shadow: 0 0 0 2px rgba(232, 201, 138, 0.8), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.py-app .dock-input:focus-within { box-shadow: 0 0 0 3px var(--focus-ring), var(--shadow-panel); }
 .py-app .dock-input > svg { color: #4b5b58; }
-.py-app .send { background: #0b1415; color: #f2f5f4; width: 44px; height: 38px; border-radius: 999px; }
-.py-app .cmd-results { background: rgba(8, 18, 19, 0.97); border: 1px solid var(--line-2); bottom: calc(100% + 12px); }
+.py-app .send { background: var(--surface-1); color: var(--label); width: 44px; height: 38px; border-radius: 999px; }
+.py-app .cmd-results { background: var(--surface-1); border: 1px solid var(--line-2); bottom: calc(100% + 12px); }
 .py-dock-foot { display: flex; align-items: center; gap: 8px; padding: 2px 4px 0; }
 .py-chip {
-  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; color: #e6eeee;
-  background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(160, 220, 210, 0.14);
+  display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; color: var(--label);
+  background: var(--surface-2); border: 1px solid var(--separator);
 }
-.py-chip svg { color: #9fd6cf; }
-.py-chip.action { margin-left: auto; background: rgba(95, 208, 196, 0.12); border-color: rgba(95, 208, 196, 0.4); }
-.py-chip.action.on { background: linear-gradient(180deg, rgba(95, 208, 196, 0.35), rgba(95, 208, 196, 0.15)); color: #fff; }
+.py-chip svg { color: var(--label-2); }
+.py-chip.action { margin-left: auto; background: var(--surface-2); border-color: var(--separator); }
+.py-chip.action.on { background: linear-gradient(180deg, rgba(95, 208, 196, 0.35), var(--surface-2)); color: var(--label); }
 
 /* ---------- right detail panel ---------- */
 .py-detail {
   position: absolute; z-index: 7; right: 18px; top: 76px; bottom: 18px; width: 430px; padding: 24px; overflow-y: auto;
   border-radius: 30px; display: flex; flex-direction: column; gap: 16px;
-  background: linear-gradient(170deg, rgba(40, 72, 70, 0.9) 0%, rgba(16, 34, 34, 0.94) 40%, rgba(8, 18, 19, 0.96) 100%);
-  border: 1px solid rgba(160, 220, 210, 0.16); backdrop-filter: blur(18px);
+  background: linear-gradient(170deg, var(--surface-1) 0%, var(--surface-1) 40%, var(--surface-1) 100%);
+  border: 1px solid var(--separator); backdrop-filter: blur(18px);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   animation: slidein 0.3s ease-out; scrollbar-width: thin; scrollbar-color: rgba(160, 220, 210, 0.2) transparent;
 }
 .py-d-top { display: flex; justify-content: space-between; align-items: center; }
-.py-d-kicker { display: inline-flex; align-items: center; gap: 10px; color: #e8c98a; font-size: 16px; }
-.py-d-title { font-size: 26px; font-weight: 400; line-height: 1.25; color: #f6f3ec; display: flex; flex-direction: column; gap: 4px; }
-.py-d-title span { font-size: 15px; color: #b8c6c4; }
-.py-d-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(160, 220, 210, 0.16); background: rgba(0, 0, 0, 0.18); }
-.py-d-status p { font-size: 13px; color: #b8c6c4; margin-top: 6px; }
-.py-state { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid rgba(160, 220, 210, 0.5); color: #cfeee8; }
+.py-d-kicker { display: inline-flex; align-items: center; gap: 10px; color: var(--label-2); font-size: 16px; }
+.py-d-title { font-size: 26px; font-weight: 400; line-height: 1.25; color: var(--label); display: flex; flex-direction: column; gap: 4px; }
+.py-d-title span { font-size: 15px; color: var(--label-2); }
+.py-d-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--r-card); border: 1px solid var(--separator); background: var(--surface-2); }
+.py-d-status p { font-size: 13px; color: var(--label-2); margin-top: 6px; }
+.py-state { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid rgba(160, 220, 210, 0.5); color: var(--label); }
 .py-state.found_ok { border-color: rgba(111, 220, 176, 0.7); color: var(--ok); }
-.py-state.found_needs_help { border-color: rgba(255, 107, 129, 0.7); color: #ffb0bd; }
+.py-state.found_needs_help { border-color: rgba(255, 107, 129, 0.7); color: var(--label-2); }
 .py-state.assisted { border-color: rgba(124, 192, 255, 0.7); color: var(--blue); }
-.py-explore { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 10px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(160, 220, 210, 0.16); font-size: 14px; color: #f2f5f4; }
-.py-explore:hover { background: rgba(0, 0, 0, 0.5); }
-.py-d-score { border-radius: 18px; padding: 16px 18px; background: linear-gradient(120deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.25)); border: 1px solid rgba(255, 255, 255, 0.06); }
-.py-d-score.critical { background: radial-gradient(120% 140% at 20% 100%, rgba(170, 40, 60, 0.45), rgba(0, 0, 0, 0.5) 65%); }
-.py-d-score.high { background: radial-gradient(120% 140% at 20% 100%, rgba(170, 100, 40, 0.38), rgba(0, 0, 0, 0.5) 65%); }
-.py-d-score-h { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #e6eeee; }
-.py-band { font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid rgba(232, 201, 138, 0.8); color: #f2e2bd; }
+.py-explore { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--separator); font-size: 14px; color: var(--label); }
+.py-explore:hover { background: var(--surface-2); }
+.py-d-score { border-radius: var(--r-card); padding: 16px 18px; background: var(--surface-2); border: 1px solid var(--separator); }
+.py-d-score.critical { background: var(--critical-tint); border-color: var(--critical); }
+.py-d-score.high { background: var(--waiting-tint); border-color: var(--waiting); }
+.py-d-score-h { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--label); }
+.py-band { font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--separator); color: var(--label); }
 .py-d-score-b { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 10px; }
-.py-d-score-b b { font-family: var(--cond); font-size: 46px; font-weight: 400; line-height: 1; color: #fff; }
-.py-d-score-b small { display: block; font-size: 13px; color: #b8c6c4; margin-top: 4px; }
+.py-d-score-b b { font-family: var(--cond); font-size: 46px; font-weight: 400; line-height: 1; color: var(--label); }
+.py-d-score-b small { display: block; font-size: 13px; color: var(--label-2); margin-top: 4px; }
 .py-dots { width: 150px; height: 56px; }
-.py-dots circle { fill: rgba(255, 255, 255, 0.14); }
-.py-dots circle.on { fill: #f1e8d6; }
-.py-dots text { font-family: var(--cond); font-size: 7px; fill: #9db1ad; }
-.py-d-reason { font-size: 13px; color: #c6d2cf; margin-top: 10px; line-height: 1.5; }
+.py-dots circle { fill: var(--label); }
+.py-dots circle.on { fill: var(--label); }
+.py-dots text { font-family: var(--cond); font-size: 7px; fill: var(--label-2); }
+.py-d-reason { font-size: 13px; color: var(--label-2); margin-top: 10px; line-height: 1.5; }
 .py-d-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.py-d-tiles > div { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 14px; border-radius: 16px; background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(160, 220, 210, 0.08); }
-.py-d-tiles svg { color: #cfdcd9; grid-row: span 2; }
-.py-d-tiles b { font-family: var(--cond); font-size: 26px; font-weight: 400; color: #fff; }
-.py-d-tiles span { grid-column: 1 / -1; font-size: 12.5px; color: #b8c6c4; margin-top: 6px; }
+.py-d-tiles > div { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 14px; border-radius: var(--r-card); background: var(--surface-2); border: 0; }
+.py-d-tiles svg { color: var(--label); grid-row: span 2; }
+.py-d-tiles b { font-family: var(--cond); font-size: 26px; font-weight: 400; color: var(--label); }
+.py-d-tiles span { grid-column: 1 / -1; font-size: 12.5px; color: var(--label-2); margin-top: 6px; }
 .py-d-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.py-d-acts button { height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; border: 1px solid rgba(160, 220, 210, 0.16); background: rgba(0, 0, 0, 0.3); transition: background 0.2s; }
-.py-d-acts button:hover:not(:disabled) { background: rgba(0, 0, 0, 0.5); }
-.py-d-acts .ok { color: var(--ok); border-color: rgba(111, 220, 176, 0.5); }
-.py-d-acts .help { color: #ffb0bd; border-color: rgba(255, 107, 129, 0.5); }
-.py-d-acts .as { color: var(--blue); border-color: rgba(124, 192, 255, 0.5); }
+.py-d-acts button { height: 42px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; border: 1px solid var(--separator); background: var(--surface-2); transition: background 0.2s; }
+.py-d-acts button:hover:not(:disabled) { background: var(--surface-2); }
+.py-d-acts button { border-radius: var(--r-pill); background: var(--surface-1); color: var(--label); }
+.py-d-acts button.ok, .py-app .py-d-acts button.ok { background: var(--action); color: var(--on-action); border-color: var(--action); }
+.py-app .py-d-acts button.ok:hover:not(:disabled) { background: var(--action-hover); }
+.py-d-acts .help svg { color: var(--critical); }
+.py-d-acts .as svg { color: var(--assisted); }
 
 /* ---------- building drill-down ---------- */
 .py-drill { position: absolute; inset: 0; z-index: 1; }
 .py-drill-svg { position: absolute; inset: 68px 0 0 0; width: 100%; height: calc(100% - 68px); }
 .py-bpills { position: absolute; z-index: 3; top: 76px; left: 24px; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 520px); }
-.py-bpills button { height: 30px; padding: 0 12px; border-radius: 8px; font-size: 12.5px; color: #b8c6c4; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line); }
-.py-bpills button:hover { color: #fff; }
-.py-bpills button.on { color: #f2e2bd; border-color: rgba(232, 201, 138, 0.7); background: rgba(232, 201, 138, 0.08); }
-.py-orbit-disc { fill: rgba(3, 9, 9, 0.55); stroke: rgba(160, 220, 210, 0.1); }
-.py-orbit-line { stroke: rgba(200, 220, 210, 0.14); stroke-width: 1; }
-.py-drill-title { font-family: var(--cond); font-size: 26px; font-weight: 600; fill: #fff; }
-.py-drill-sub { font-family: var(--cond); font-size: 17px; fill: #e6eeee; }
-.py-card { fill: rgba(14, 30, 31, 0.9); stroke: rgba(160, 220, 210, 0.16); }
-.py-card.on { fill: rgba(40, 46, 38, 0.95); stroke: #e8d4a2; stroke-width: 2; }
-.py-card-n { font-family: var(--cond); font-size: 22px; fill: #fff; }
-.py-card-l { font-family: var(--font); font-size: 11px; fill: #b8c6c4; }
-.py-item { font-family: var(--font); font-size: 13px; fill: #e6eeee; }
-.py-item.on { fill: #f2e2bd; font-weight: 600; }
-.py-item-u { fill: #7d8f8b; font-size: 11px; }
-.py-mini-pill { fill: rgba(0, 0, 0, 0.55); stroke: rgba(255, 255, 255, 0.08); }
+.py-bpills button { height: 30px; padding: 0 12px; border-radius: 8px; font-size: 12.5px; color: var(--label-2); background: var(--surface-2); border: 1px solid var(--line); }
+.py-bpills button:hover { color: var(--label); }
+.py-bpills button.on { color: var(--label); border-color: var(--label); background: var(--surface-1); }
+.py-orbit-disc { fill: var(--surface-1); stroke: var(--separator); }
+.py-orbit-line { stroke: var(--separator); stroke-width: 1; }
+.py-drill-title { font-family: var(--cond); font-size: 26px; font-weight: 600; fill: var(--label); }
+.py-drill-sub { font-family: var(--cond); font-size: 17px; fill: var(--label); }
+.py-card { fill: var(--surface-1); stroke: var(--separator); }
+.py-card.on { fill: var(--surface-1); stroke: var(--label); stroke-width: 2; }
+.py-card-n { font-family: var(--cond); font-size: 22px; fill: var(--label); }
+.py-card-l { font-family: var(--font); font-size: 11px; fill: var(--label-2); }
+.py-item { font-family: var(--font); font-size: 13px; fill: var(--label); }
+.py-item.on { fill: var(--label); font-weight: 600; }
+.py-item-u { fill: var(--label-3); font-size: 11px; }
+.py-mini-pill { fill: var(--surface-1); stroke: var(--separator); }
 
 /* ---------- screens that reuse the base layout ---------- */
 .py-app .stage { top: 0; }
-.py-app .page { top: 76px; left: 18px; background: rgba(6, 14, 15, 0.92); border-color: var(--line); }
-.py-app .card { background: rgba(12, 26, 27, 0.85); border-color: var(--line); }
-.py-app .hist i { background: linear-gradient(180deg, #e8c98a, rgba(232, 201, 138, 0.2)); }
+.py-app .page { top: 76px; left: 18px; background: var(--surface-1); border-color: var(--line); }
+.py-app .card { background: var(--surface-1); border-color: var(--line); }
+.py-app .hist i { background: var(--label-3); }
 .py-app .toasts { top: 80px; z-index: var(--z-toast); }
 .py-app.has-detail .toasts { right: 466px; }
-.py-app .toast { background: rgba(26, 12, 16, 0.94); }
+.py-app .toast { background: var(--surface-1); }
 .py-app .err-toast { z-index: var(--z-toast); top: 80px; }
 .py-app.screen-live .queue-panel, .py-app.screen-live .detail { top: 76px; }
 .py-app.screen-live .legend { top: 76px; }
@@ -317,16 +298,16 @@
 .py-app.screen-tree .toasts { top: 128px; }
 
 /* Map screen in the same teal night palette. */
-.py-app .glass { background: rgba(8, 18, 19, 0.9); border-color: rgba(160, 220, 210, 0.14); }
-.py-app .bldg { fill: #0d1c1c; stroke: #24403e; }
-.py-app .map-label { fill: #4f6a67; }
-.py-app .map-label.bldg-name { fill: #a9bfbb; font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
-.py-app .map-canvas { background: #030707; }
-.py-app .qp-row, .py-app .gauge-card, .py-app .ladder-track, .py-app .factor, .py-app .sensor, .py-app .override { background: rgba(160, 220, 210, 0.05); }
-.py-app .qp-row.sel { border-color: #e8c98a; }
-.py-app .seg button.on, .py-app .tool.on { background: #e8c98a; color: #1d1404; }
-.py-app .act.good { background: #e8c98a; }
-.py-app .detail, .py-app .queue-panel { background: rgba(7, 16, 17, 0.97); }
+.py-app .glass { background: var(--surface-1); border-color: var(--separator); }
+.py-app .bldg { fill: #8c8984; fill-opacity: 0.92; stroke: #9a968f; }
+.py-app .map-label { fill: #fff; }
+.py-app .map-label.bldg-name { fill: #fff; font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
+.py-app .map-canvas { background: var(--surface-1); }
+.py-app .qp-row, .py-app .gauge-card, .py-app .ladder-track, .py-app .factor, .py-app .sensor, .py-app .override { background: var(--surface-2); }
+.py-app .qp-row.sel { border-color: var(--label); }
+.py-app .seg button.on, .py-app .tool.on { background: var(--action); color: var(--on-action); }
+.py-app .act.good { background: var(--action); color: var(--on-action); }
+.py-app .detail, .py-app .queue-panel { background: var(--surface-1); }
 
 /* Overview has its own chrome: keep toasts below the title row, clear of the actions. */
 .py-app.screen-overview .toasts { top: auto; bottom: 28px; right: 28px; }
@@ -334,4 +315,41 @@
 .py-app.screen-overview.has-detail .toasts { right: 28px; }
 
 /* Always-visible reminder that this is a simulation with synthetic data. */
-.py-sim { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8a5a00; background: rgba(255, 183, 3, .22); border: 1px solid rgba(255, 183, 3, .55); }
+.py-sim { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--waiting-ink); background: var(--waiting-tint); border: 1px solid var(--separator); }
+
+/* Contract: no spotlight or orb art (SYSTEM.md section 2). */
+.py-bg { display: none; }
+/* Building view: flat, no rings or orbs (SYSTEM.md section 1.2). */
+.py-orbit-disc, .py-orbit-line { display: none; }
+.py-focus-card { fill: var(--surface-3); stroke: var(--separator); }
+.py-focus-card.hot { fill: var(--critical-tint); stroke: var(--critical); }
+.gold { fill: var(--label); font-weight: 600; }
+
+/* ---------- one website: labeled screen tabs in the top bar ---------- */
+.hc-nav { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-pill); background: var(--surface-3); }
+.hc-nav button {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: var(--h-md); padding: 0 14px;
+  border-radius: var(--r-pill); font: var(--t-footnote); font-weight: 500; color: var(--label-2);
+  transition: background var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
+}
+.hc-nav button:hover { color: var(--label); }
+.hc-nav button.on { background: var(--surface-1); color: var(--label); box-shadow: var(--shadow-knob); font-weight: 600; }
+.hc-nav em { font-style: normal; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--critical); color: #fff; font: var(--t-caption); font-weight: 600; display: inline-grid; place-items: center; }
+@media (max-width: 1279px) { .hc-nav span { display: none; } }
+
+/* Map screen: one map, two camera modes */
+.hc-mapmode {
+  position: absolute; z-index: var(--z-popover); top: 80px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 2px; border-radius: var(--r-pill);
+  background: var(--mat-map); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+  border: 1px solid var(--mat-map-rim); box-shadow: var(--shadow-map);
+}
+.hc-mapmode button { display: inline-flex; align-items: center; gap: 6px; height: var(--h-sm); padding: 0 12px; border-radius: var(--r-pill); font: var(--t-footnote); font-weight: 500; color: var(--label-2); }
+.hc-mapmode button[aria-selected='true'] { background: var(--action); color: var(--on-action); }
+
+/* Units (Overview) sits under the shared top bar; the top bar is its navigation. */
+.py-app.screen-overview .ov { top: 68px; grid-template-columns: 1fr; }
+.py-app.screen-overview .ov-rail { display: none; }
+/* Units: the shared top bar already carries search, bell and clock. */
+.py-app.screen-overview .ov-top-r { display: none; }
+.py-app .demo-btn { white-space: nowrap; }

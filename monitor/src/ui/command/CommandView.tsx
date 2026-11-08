@@ -6,6 +6,8 @@ import { FlatMap } from './FlatMap';
 import type { Map3DProps } from './Map3D';
 import { KIND_LABEL, STATUS_LABEL, type Status } from './model';
 import './command.css';
+import { LiveSensorBadge, LiveSensorStrip } from '../LiveSensor';
+import '../live-sensor.css';
 
 // Main dashboard: the real neighborhood as a live 3D model, with the incident
 // summary and the dispatch queue beside it. Everything is read from server
@@ -125,6 +127,8 @@ export function CommandView({ view, snapshot, now, zoom, filter, selected, onSel
           )}
         </section>
 
+        <LiveSensorStrip households={view.households} nodes={view.node} buildings={view.building} now={now} onSelect={onSelect} />
+
         {attention}
 
         <section className="cm-card cm-queue">
@@ -152,6 +156,7 @@ export function CommandView({ view, snapshot, now, zoom, filter, selected, onSel
                         <span className="cm-row-name">
                           {h.name} <em>{b ? `${b.name} ${h.unit}` : h.unit}</em>
                         </span>
+                        <LiveSensorBadge h={h} n={view.node.get(h.id)} now={now} compact />
                         <span className="cm-row-reason">{p?.reason ?? ''}</span>
                         <span className="cm-row-step">
                           {[1, 2, 3, 4].map((j) => (
