@@ -7,7 +7,13 @@ import './agent-screen.css';
 // text agent's local server (it holds the phone numbers; the database never does), so the buttons are off
 // when that server is not running.
 
-const AGENT = (import.meta.env.VITE_AGENT_URL ?? 'http://127.0.0.1:8787').replace(/\/$/, '');
+// The agent's server. The default local address is only tried from a local page: on a deployed HTTPS
+// site, calling 127.0.0.1 makes the browser ask every visitor for local-network access. A deployed
+// site only talks to the agent if VITE_AGENT_URL is set at build time.
+const LOCAL_PAGE = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+const CONFIGURED = import.meta.env.VITE_AGENT_URL?.replace(/\/$/, '');
+const AGENT_URL: string | null = CONFIGURED || (LOCAL_PAGE ? 'http://127.0.0.1:8787' : null);
+const AGENT = AGENT_URL ?? '';
 
 const EVACUATE =
   'THIS IS AN EMERGENCY. A fire hazard or storm is in close proximity to your neighborhood. Please evacuate this area now. Reply OK if you are safe, or HELP if you need help.';
@@ -27,11 +33,12 @@ const TASK_LABEL: Record<string, string> = {
   accepted: 'Neighbor on the way',
 };
 
-type Link = { state: 'checking' } | { state: 'up'; joined: number } | { state: 'down' };
+type Link = { state: 'checking' } | { state: 'up'; joined: number } | { state: 'down' } | { state: 'off' };
 
 function useAgentLink(): Link {
-  const [link, setLink] = useState<Link>({ state: 'checking' });
+  const [link, setLink] = useState<Link>({ state: AGENT_URL ? 'checking' : 'off' });
   useEffect(() => {
+    if (!AGENT_URL) return;
     let alive = true;
     const ping = async () => {
       try {
@@ -144,8 +151,8 @@ export function AgentScreen() {
               : 'Who needs attention appears here once an event starts. You can still message neighbors below.'}
           </p>
         </div>
-        <span className={`agents__link agents__link--${link.state}`} role="status">
-          {link.state === 'up' ? `Agent connected. ${link.joined} ${link.joined === 1 ? 'person has' : 'people have'} joined.` : link.state === 'down' ? 'Agent not reachable. Run `npm start` in photon-agent.' : 'Checking the agent…'}
+        <span className={`agents__link agents__link--${link.state === 'off' ? 'checking' : link.state}`} role="status">
+          {link.state === 'up' ? `Agent connected. ${link.joined} ${link.joined === 1 ? 'person has' : 'people have'} joined.` : link.state === 'down' ? 'Agent not reachable. Run `npm start` in photon-agent.' : link.state === 'off' ? 'Sending runs from the dispatcher laptop. Not connected on this site.' : 'Checking the agent…'}
         </span>
       </header>
 
