@@ -6,7 +6,8 @@ Gemini placeholder, and reporting to the real Headcount database (Maincloud
 `rescuedb`) as household 1, Mrs. Alvarez.
 
 Wiring (BCM GPIO numbers):
-  sound 17 | heat 27 | flame 22 | shock 23 (physical 16) | motion/PIR 24 (physical 18) | buzzer 25
+  sound 17 | heat 27 | flame 22 | motion/PIR 23 (physical 16) | shock 24 (physical 18) | buzzer 25
+  (same map as the team's sensor_node.py and sensor_stream.py)
 
 What goes to the database (report_event):
   shock  -> "shake", reported as a sustained 4 s episode (the switch only pulses once)
@@ -26,11 +27,11 @@ import json, os, queue, sys, threading, time, urllib.request, urllib.error
 from collections import deque
 from datetime import datetime
 
-VERSION = "v9"
+VERSION = "v10"
 SERVER = os.environ.get("HC_SERVER", "https://maincloud.spacetimedb.com")
 DB = os.environ.get("HC_DB", "rescuedb")
 HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
-PINS = {"shock": 23, "motion": 24, "flame": 22, "heat": 27, "sound": 17}
+PINS = {"shock": 24, "motion": 23, "flame": 22, "heat": 27, "sound": 17}
 LABELS = {"shock": "Shock/Quake", "motion": "Person/motion", "flame": "Flame",
           "heat": "Heat", "sound": "Loud noise"}
 PIN_BUZZER = 25
@@ -39,8 +40,8 @@ DRY = "--dry" in sys.argv
 CAMERA = "--no-camera" not in sys.argv
 PLAIN = "--plain" in sys.argv
 # Shock is strict: it needs SHOCK_PULSES separate impacts within SHOCK_WINDOW seconds.
-SHOCK_PULSES = int(os.environ.get("HC_SHOCK_PULSES", "4"))
-SHOCK_WINDOW = float(os.environ.get("HC_SHOCK_WINDOW", "2.0"))
+SHOCK_PULSES = int(os.environ.get("HC_SHOCK_PULSES", "2"))
+SHOCK_WINDOW = float(os.environ.get("HC_SHOCK_WINDOW", "3.0"))
 PIR_WARMUP = int(os.environ.get("HC_PIR_WARMUP", "20"))
 COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 0, "sound": 10}  # s between reports
 
@@ -178,14 +179,14 @@ def main():
     print(f"Warming up PIR ({PIR_WARMUP}s), stay out of its view...", flush=True)
     time.sleep(PIR_WARMUP)
     idle = {n: s.value for n, s in sensors.items()}
-    idle["shock"] = 0   # pulses HIGH on impact
+    # shock keeps its startup level as "rest"; a pulse in either direction is an impact
     idle["motion"] = 0  # PIR is HIGH while it sees motion
     add_event("Node online")
 
     last_seen = {n: None for n in PINS}
     last_sent = {n: 0.0 for n in PINS}
     chirp_until = 0.0
-    pulses = deque(); prev_shock = 0
+    pulses = deque(); prev_shock = idle["shock"]
     prev_motion = 1  # ignore the HIGH it starts in
     last_hb = last_draw = 0.0
 
@@ -195,7 +196,7 @@ def main():
             send("heartbeat", {"householdId": HOUSEHOLD, "onBattery": False}); last_hb = t
 
         v = sensors["shock"].value
-        if v and not prev_shock:
+        if v != idle["shock"] and prev_shock == idle["shock"]:
             pulses.append(t)
             if PLAIN: print("shock pulse %d/%d" % (len(pulses), SHOCK_PULSES), flush=True)
         prev_shock = v
