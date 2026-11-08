@@ -48,8 +48,8 @@ export function startAdmin({ port, db, store, assign }: AdminOptions) {
       const people = store.contacts().map((p) => `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.householdId ?? '-')} / ${escapeHtml(p.careFor.join(', ') || '-')}</td><td>${p.assignedNumber ? `Texts ${escapeHtml(p.assignedNumber)}` : 'No line'}</td><td>${p.spaceId ? 'Joined' : 'Waiting for first text'}</td><td>${escapeHtml(p.capabilities.join(', '))}</td></tr>`).join('');
       const options = s.households.slice().sort((a, b) => a.id - b.id).map((h) => `<option value="${h.id}">${h.id} ${escapeHtml(h.name)} (${escapeHtml(h.unit)})</option>`).join('');
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }).end(PAGE(`
-<h1>${c ? `${c.accounted} of ${c.total}` : '-'} accounted for</h1>
-<p class="sub">${c ? `${c.reported} reported, unconfirmed. ${c.needsHelp} need help. ${c.conflict} conflicting. ${c.unaccounted} no word.` : 'No data yet.'}</p>
+<h1>${c?.eventActive ? `${c.accounted} of ${c.total} accounted for` : 'All clear'}</h1>
+<p class="sub">${c?.eventActive ? `${c.reported} reported, unconfirmed. ${c.needsHelp} need help. ${c.conflict} conflicting. ${c.unaccounted} no word.` : 'No active emergency.'}</p>
 <h2>Waiting for your approval</h2><table>${proposals || '<tr><td>Nothing waiting.</td></tr>'}</table>
 <h2>Neighbor checks</h2><table>${tasks || '<tr><td>None yet.</td></tr>'}</table>
 <h2>People on the line</h2><table><tr><th>Name</th><th>Home / cares for</th><th>Line</th><th>Status</th><th>Can offer</th></tr>${people}</table>

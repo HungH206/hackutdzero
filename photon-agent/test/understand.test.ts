@@ -34,10 +34,10 @@ for (const [text, want] of [['yes', 'accept'], ['on my way', 'accept'], ['voy', 
   test(`helper reply "${text}" is ${want}`, () => assert.equal(keywordUnderstand(ctx(text, { pendingHelperFor: 'Mrs. Alvarez' })).helper, want));
 }
 
-for (const text of ['Help is on the way', 'Someone is coming to you', "We'll send help", 'Paramedics will arrive soon', 'La ayuda va en camino', 'Alguien viene a ayudarte', 'A neighbor has agreed to come check on you']) {
+for (const text of ['Help is on the way', 'Someone is coming to you', "We'll send help", 'Paramedics will arrive soon', 'La ayuda va en camino', 'Alguien viene a ayudarte', 'A neighbor has agreed to come check on you', "Help's on the way", 'Help will arrive soon', 'An ambulance is coming', 'Rescuers are on the way', 'La ayuda llegará pronto', 'Te enviaré ayuda', 'Ya viene la ayuda']) {
   test(`blocks: ${text}`, () => assert.ok(promisesHelp(text)));
 }
-for (const text of [copy.selfHelp('en'), copy.selfHelp('es'), copy.noPromiseFallback('en'), copy.noPromiseFallback('es'), copy.reportHelp('en', 'Ana'), copy.checkin('en', 'quake'), copy.ask('en', 2, 'Elm')]) {
+for (const text of [copy.selfHelp('en'), copy.selfHelp('es'), copy.noPromiseFallback('en'), copy.noPromiseFallback('es'), copy.reportHelp('en', 'Ana'), copy.checkin('en', 'quake'), copy.ask('en', 2, 'Elm'), copy.circleCheck('es', 'Ana'), copy.reportHelp('es', 'Ana'), copy.checkin('es', 'fire')]) {
   test(`allows: ${text.slice(0, 40)}`, () => assert.ok(!promisesHelp(text), text));
 }
 

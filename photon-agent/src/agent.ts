@@ -71,8 +71,13 @@ export class Agent {
     const confirmed = aboutHousehold !== null && !!s && s.tasks.some((t) => t.householdId === aboutHousehold && t.state === 'accepted');
     const guarded = guardMessage(text, confirmed, copy.noPromiseFallback(to.language));
     if (guarded.blocked) console.warn('Blocked an unconfirmed promise of help:', text);
-    await this.sendRaw(to, guarded.text, key);
-    this.store.markSent(key);
+    try {
+      await this.sendRaw(to, guarded.text, key);
+      this.store.markSent(key);
+    } catch (error) {
+      // One bad recipient must not stop everyone after them. Not marked sent, so the next tick retries.
+      console.error(`Could not text ${to.name}:`, error instanceof Error ? error.message : error);
+    }
   }
 
   /** For callers outside the text loop, such as the end of a phone call. Goes through the same guard. */
@@ -84,7 +89,12 @@ export class Agent {
   // ---------- Inbound ----------
 
   async handle(m: Inbound): Promise<void> {
-    if (!this.store.firstTime(m.id)) return;
+    if (this.store.wasProcessed(m.id)) return;
+    await this.process(m);
+    this.store.markProcessed(m.id);
+  }
+
+  private async process(m: Inbound): Promise<void> {
     const contact = this.store.contact(m.handle) ?? this.store.upsert({
       handle: m.handle, name: 'there', householdId: null, careFor: [], language: 'en', assignedNumber: null,
     });
@@ -113,7 +123,9 @@ export class Agent {
       eventActive: active,
     });
     console.log(`[${u.source}] ${contact.name}: helper=${u.helper} claims=${JSON.stringify(u.claims.map((c) => [c.subjectHouseholdId, c.kind, c.firsthand]))}`);
-    if (u.language !== contact.language) this.store.patch(m.handle, { language: u.language });
+    // A short "ok" or "1A" from a Spanish speaker says nothing about their language.
+    const clearSwitch = u.language === 'es' || m.text.trim().split(/\s+/).length >= 3;
+    if (u.language !== contact.language && clearSwitch) this.store.patch(m.handle, { language: u.language });
     const me = this.store.contact(m.handle)!;
 
     if (pending && u.helper !== 'none') {
@@ -128,7 +140,7 @@ export class Agent {
 
     const valid = u.claims.filter((c) => c.kind !== 'unknown' && this.household(s, c.subjectHouseholdId));
     if (valid.length === 0) {
-      await this.say(me, u.reply && u.source === 'model' ? u.reply : copy.notUnderstood(me.language), replyKey, me.householdId);
+      await this.say(me, copy.notUnderstood(me.language), replyKey, me.householdId);
       return;
     }
     for (const c of valid) {

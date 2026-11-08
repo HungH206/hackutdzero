@@ -26,6 +26,14 @@ Without an Anthropic key it reads messages with keyword matching. Without a Phot
 - Nobody is asked to go anywhere until a person approves it, and only people confirmed safe are asked.
 - Phone numbers and message text stay in `data/state.json`. SpacetimeDB gets a hash of the sender and private claim rows.
 
+## Demo setup
+
+- Put demo phones on sensored households inside the quake area, such as Alder Court. Other households don't get a check-in, a ring or a call.
+- Neighbors are only asked once they count as accounted for, so they need to answer the check-in first.
+- During an event the count covers households we tried to reach or heard about. Households with no sensor and no reports aren't in it.
+- Point the dashboard at the same database. `npm run dashboards` uses a separate in-process copy, so use `dashboards:live`.
+- A tunnel URL changes when it restarts. Rerun `npm run setup:voice` after that.
+
 ## Test
 
 `npm test` runs the unit tests. `npm run e2e` plays the demo against a local SpacetimeDB with a fake phone network.

@@ -52,12 +52,11 @@ export class Store {
     this.save();
   }
 
-  /** Marks an inbound message as handled. Returns false if it already was, since replays can redeliver. */
-  firstTime(messageId: string): boolean {
-    if (this.state.processed.includes(messageId)) return false;
+  /** Replays can redeliver a message, so it only counts as handled once the work has succeeded. */
+  wasProcessed = (messageId: string) => this.state.processed.includes(messageId);
+  markProcessed(messageId: string) {
     this.state.processed = [...this.state.processed.slice(-KEEP), messageId];
     this.save();
-    return true;
   }
 
   wasSent = (key: string) => this.state.sent.includes(key);

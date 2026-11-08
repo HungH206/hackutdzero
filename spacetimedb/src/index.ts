@@ -513,11 +513,16 @@ function refreshAccounting(ctx: Ctx) {
   const at = now(ctx);
   const tally = { accounted: 0, reported: 0, needs_help: 0, conflict: 0, unaccounted: 0 };
   let total = 0;
+  const eventActive = activeDisasters(ctx).length > 0;
   for (const h of ctx.db.household.iter()) {
-    total++;
     const claims = [...ctx.db.personClaim.householdId.filter(h.id)] as unknown as Claim[];
     const a = accountFor({ claims, highRisk: isHighRisk(h), finalState: h.finalState });
-    tally[a.status]++;
+    // During an event the count covers people we tried to reach or heard about, not the whole map.
+    const ci = ctx.db.checkin.householdId.find(h.id);
+    if (!eventActive || claims.length > 0 || (ci !== null && ci.state !== 'none')) {
+      total++;
+      tally[a.status]++;
+    }
     const prev = ctx.db.accounting.householdId.find(h.id);
     if (!prev) ctx.db.accounting.insert({ householdId: h.id, status: a.status, sources: a.sources, note: a.note, updatedAtMicros: at });
     else if (prev.status !== a.status || prev.sources !== a.sources || prev.note !== a.note) {
@@ -526,7 +531,7 @@ function refreshAccounting(ctx: Ctx) {
   }
   const row = {
     id: 0, total, accounted: tally.accounted, reported: tally.reported, needsHelp: tally.needs_help, conflict: tally.conflict,
-    unaccounted: tally.unaccounted, eventActive: activeDisasters(ctx).length > 0,
+    unaccounted: tally.unaccounted, eventActive,
   };
   const prev = ctx.db.headcountSummary.id.find(0);
   if (!prev) ctx.db.headcountSummary.insert(row);
