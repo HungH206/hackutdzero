@@ -1,5 +1,7 @@
 # Prompt: graphics revamp
 
+> Replaced by [`apple-grade-design-system.md`](apple-grade-design-system.md), the more detailed brief that adds Apple's design system and per-reference specs. Kept for history.
+
 Paste this into the model doing the visual redesign. Attach the four reference files from the repo root yourself; they are not committed: `python.mp4`, `DASHBOARD EXAMPLE.webp`, `DASHBOARD EXAMPLEE.webp`, `DASHBOARD EXMPLEEE.mp4`.
 
 ---

@@ -234,7 +234,7 @@ Update this table honestly before submitting.
 |---|---|
 | Concept, HPI formula, escalation design | Done (design) |
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
-| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb`. 85 tests in SpacetimeDB's in-memory datastore (worked examples, determinism, silence and missing-data rules, communications outage, backup-power countdown, overrides and audit, ladder timing, fast-forward, authorization, and the Alder Court scenario). **Published to a local SpacetimeDB server** and checked there with two client identities (`npm run verify:live`). **Not published to a hosted server.** Needs reconciling with Hung's schema. |
+| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). Target server: SpacetimeDB Maincloud, database **`rescuedb`** (the RescueGrid workspace). `rescuegrid-test/rescuegrid` now points its `spacetime.json` and publish scripts at this module. **This module has not been published to `rescuedb` yet**; until it is, `rescuedb` still holds the earlier starter template. |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
 | Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
@@ -279,6 +279,13 @@ npm run promote -- 0x…     # or: promote one identity (shown in the New Simula
 ```
 
 The dashboard saves its token in `localStorage`, so a browser keeps the same identity across reloads and only needs promoting once. (An anonymous SpacetimeDB connection is issued a new identity every time, so without that saved token a promotion would be lost on the next refresh.) A private window, another browser, or cleared site data is a new identity and needs promoting again.
+spacetime start                                  # local server on ws://localhost:3000
+spacetime publish --module-path spacetimedb headcount
+# shared team database (RescueGrid on Maincloud):
+spacetime publish --server maincloud --module-path spacetimedb rescuedb
+```
+
+The CLI commands above have not been run yet. Publishing this module over the starter template in `rescuedb` changes the schema completely, so the first publish needs the CLI's clear-data option; that is safe only while `rescuedb` holds no data worth keeping. Check flag names against `spacetime publish --help` for your CLI version.
 
 ### Monitor dashboard (`/monitor`)
 
