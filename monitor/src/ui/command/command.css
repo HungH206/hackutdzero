@@ -81,9 +81,9 @@
 .p3-tip strong { font-weight: 600; color: #ffcfbf; }
 
 /* map type: streets, water, parks, buildings */
-.r3 { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font: 600 10px/1 var(--font); letter-spacing: 0.09em; text-transform: uppercase; color: #8a8377; white-space: nowrap; pointer-events: none; text-shadow: 0 0 2px #fdfcfa, 0 0 2px #fdfcfa, 0 0 5px #fdfcfa; }
-.w3 { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font: italic 500 12.5px/1 var(--font); letter-spacing: 0.08em; color: #4f7488; white-space: nowrap; pointer-events: none; text-shadow: 0 0 2px #eef3f5, 0 0 4px #eef3f5; }
-.w3.park { color: #55744b; text-shadow: 0 0 2px #eef2e8, 0 0 4px #eef2e8; }
+.r3 { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font: 500 12px/1 var(--font-map); letter-spacing: 0.02em; color: #fff; white-space: nowrap; pointer-events: none; text-shadow: 1px 0 0 rgba(0, 0, 0, 0.7), -1px 0 0 rgba(0, 0, 0, 0.7), 0 1px 0 rgba(0, 0, 0, 0.7), 0 -1px 0 rgba(0, 0, 0, 0.7), 1px 1px 0 rgba(0, 0, 0, 0.5), -1px -1px 0 rgba(0, 0, 0, 0.5); }
+.w3 { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font: italic 500 12px/1 var(--font-map); letter-spacing: 0.02em; color: #fff; white-space: nowrap; pointer-events: none; text-shadow: 1px 0 0 rgba(0, 0, 0, 0.7), -1px 0 0 rgba(0, 0, 0, 0.7), 0 1px 0 rgba(0, 0, 0, 0.7), 0 -1px 0 rgba(0, 0, 0, 0.7), 1px 1px 0 rgba(0, 0, 0, 0.5), -1px -1px 0 rgba(0, 0, 0, 0.5); }
+.w3.park { color: #fff; }
 .b3 { position: absolute; left: 0; top: 0; transform: translate(-3px, 3px); display: flex; align-items: baseline; gap: 6px; margin: 0; padding: 4px 8px 5px; border-radius: 7px; background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(35, 33, 29, 0.09); box-shadow: 0 1px 2px rgba(30, 28, 24, 0.12), 0 4px 12px rgba(30, 28, 24, 0.08); font: 400 11px/1.2 var(--font); color: var(--ink-3); white-space: nowrap; cursor: pointer; pointer-events: auto; }
 .b3 b { font-weight: 600; font-size: 12px; color: var(--ink); }
 .b3:hover { border-color: rgba(35, 33, 29, 0.32); }

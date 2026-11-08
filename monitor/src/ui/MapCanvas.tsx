@@ -4,6 +4,8 @@ import { bandOf } from '../data/derive';
 import type { Disaster, Household } from '../data/types';
 import { BAND_COLOR } from './Gauges';
 import { Icon, iconPath, type IconName } from './Icon';
+import { massesOf } from './command/model';
+import { drawSitePlan, SITE, SITE_D, SITE_W } from './command/sitePlan';
 
 export type Layer = 'heat' | 'hazard' | 'responders' | 'outage' | 'power' | 'coverage';
 export const LAYERS: { id: Layer; label: string; icon: IconName }[] = [
@@ -136,6 +138,13 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
 
   const zoomPct = Math.round((FULL.w / box.w) * 100);
 
+  // The same fictional satellite paint as the 3D main map (one map base).
+  const geoKey = `${view.building.size}:${view.households.length}`;
+  const satellite = useMemo(
+    () => (view.building.size ? drawSitePlan(massesOf(view.building.values(), view.households), view.households).toDataURL('image/jpeg', 0.86) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geoKey],
+  );
   const unknownZone = useMemo(() => {
     const pts = view.households.filter((h) => !h.hasSensor);
     if (!pts.length) return null;
@@ -229,20 +238,21 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         {/* Basemap, drawn in-app so the demo never depends on map tiles. */}
         <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="#e9e5dd" />
         <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="url(#grid)" />
-        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616 L1200 900 L-200 900z" fill="#b9cfd9" />
-        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616" stroke="#9cb4bf" strokeWidth="3" fill="none" />
+        {satellite && <image href={satellite} x={SITE.x0} y={SITE.z0} width={SITE_W} height={SITE_D} preserveAspectRatio="none" className="sat" />}
+        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616 L1200 900 L-200 900z" fill="none" />
+        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616" stroke="none" fill="none" />
         <text x={30} y={636} className="map-label water">
           Cedar Creek
         </text>
-        <path d="M880 20 h120 v170 h-80 q-50 -30 -40 -90z" fill="#d3ddc3" stroke="#c5d1b4" />
+        <path d="M880 20 h120 v170 h-80 q-50 -30 -40 -90z" fill="none" stroke="none" />
         <text x={905} y={60} className="map-label park">
           Hollow Park
         </text>
         {Array.from({ length: 24 }, (_, i) => (
-          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="#e2ded6" strokeWidth={2} />
+          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="none" strokeWidth={2} />
         ))}
         {Array.from({ length: 16 }, (_, i) => (
-          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="#e2ded6" strokeWidth={2} />
+          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="none" strokeWidth={2} />
         ))}
         {[
           { d: 'M-60 62 H1060', n: 'RIDGE RD', x: 760, y: 56 },
@@ -252,8 +262,8 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
           { d: 'M642 -40 V680', n: 'MILL ST', x: 0, y: 0, vx: 636, vy: 470 },
         ].map((r) => (
           <g key={r.n}>
-            <path d={r.d} stroke="#fdfcfa" strokeWidth={15} />
-            <path d={r.d} stroke="#e2dccf" strokeWidth={1} strokeDasharray="5 9" />
+            
+            
             {'vx' in r ? (
               <text x={r.vx} y={r.vy} className="map-label road" transform={`rotate(-90 ${r.vx} ${r.vy})`}>
                 {r.n}

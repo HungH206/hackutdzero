@@ -29,7 +29,7 @@ const AZ = -18 * DEG;
 const BASE_DIST = 1550;
 const HOME = new THREE.Vector3(40, 0, 70);
 const SUN = new THREE.Vector3(0.72, 0.5, 0.42).normalize().multiplyScalar(1400);
-const SKY = '#e9e5de';
+const SKY = '#f5f5f7';
 
 // light balance: the sun carries the form, a low sky fill keeps shadows readable
 const LIGHT = { sun: 3.9, env: 0.27, hemi: 0.12, ao: 2.4 };
@@ -53,7 +53,7 @@ const M = {
   canopy: std('#ffffff', 0.95),
   trunk: std('#b9ad9b', 1),
   plinth: std('#dcd5c8', 0.95),
-  water: std('#a7c2cf', 0.08, { envMapIntensity: 1.15 }),
+  water: std('#34474a', 0.12, { envMapIntensity: 0.9 }),
   ems: std('#2563eb', 0.55),
   rail: std('#cfc8bc', 0.8),
 };
@@ -274,7 +274,7 @@ function Trees({ trees }: { trees: Tree[] }) {
   useLayoutEffect(() => {
     const o = new THREE.Object3D();
     const c = new THREE.Color();
-    const greens = ['#a9b98f', '#9fb287', '#b3c098', '#a3b48a'].map((h) => new THREE.Color(h));
+    const greens = ['#3d4d39', '#46523f', '#35463a', '#4b5642'].map((h) => new THREE.Color(h));
     trees.forEach((t, i) => {
       o.position.set(t.x, t.h, t.z);
       o.scale.set(t.r, t.r * 0.92, t.r);
