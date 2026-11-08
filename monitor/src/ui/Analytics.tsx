@@ -24,6 +24,12 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
   const hist = Array.from({ length: 8 }, (_, i) => ttf.filter((t) => t >= i * 5 && (i === 7 || t < (i + 1) * 5)).length);
   const histMax = Math.max(1, ...hist);
 
+  const sinceStart = curve.length ? curve[curve.length - 1]!.accounted : 0;
+  const atStart = c.accounted - sinceStart;
+  const hiAcc = high.filter(isAcc).length;
+  const restAcc = rest.filter(isAcc).length;
+  const next = view.queue.slice(0, 5);
+
   const buildings = [...view.building.values()]
     .map((b) => {
       const hs = view.households.filter((h) => h.buildingId === b.id);
@@ -42,6 +48,68 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
           <h1>Is everyone being found?</h1>
         </div>
         <span className="chip">{view.disasterActive ? 'Live incident' : 'No active incident'} · synthetic data</span>
+      </div>
+
+      <div className="an-kpis">
+        <section className="an-kpi">
+          <span className="an-kpi-l">Accounted for</span>
+          <b className="an-kpi-v">
+            {c.accounted}
+            <small> of {c.total}</small>
+          </b>
+          <span className="an-kpi-was">
+            At incident start: <b>{view.disasterActive ? atStart : '—'}</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">Median time to found</span>
+          <b className="an-kpi-v">{fmtMin(med)}</b>
+          <span className="an-kpi-was">
+            90% found within: <b>{fmtMin(p90)}</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">High-need found</span>
+          <b className="an-kpi-v">
+            {pct(hiAcc, high.length)}
+            <small>%</small>
+          </b>
+          <span className="an-kpi-was">
+            Everyone else: <b>{pct(restAcc, rest.length)}%</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">Still open</span>
+          <b className="an-kpi-v">{view.queue.length}</b>
+          <span className="an-kpi-was">{view.queue.length ? 'Ranked by need on the priority table' : 'Nobody waiting'}</span>
+        </section>
+        <section className="an-next">
+          <span className="an-kpi-l">Next to reach</span>
+          {next.length === 0 ? (
+            <p className="an-next-empty">
+              <Icon name="check" size={14} /> Everyone with a sensor is accounted for.
+            </p>
+          ) : (
+            <ol>
+              {next.map((h) => {
+                const p = view.prio.get(h.id);
+                return (
+                  <li key={h.id}>
+                    <button onClick={() => onSelect(h.id)}>
+                      <span className="an-next-r" data-band={p?.band}>
+                        {p?.rank}
+                      </span>
+                      <span className="an-next-n">
+                        {h.name} <small>{view.building.get(h.buildingId)?.name} {h.unit}</small>
+                      </span>
+                      <span className="an-next-h">{p?.hpi.toFixed(0)}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
       </div>
 
       <div className="bento">
