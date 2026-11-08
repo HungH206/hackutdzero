@@ -6,6 +6,7 @@ import './agent.css';
 import { useHeadcount } from '../data/HeadcountProvider';
 import { STEP_LABEL, agoText, clockText, useView } from '../data/derive';
 import type { Household } from '../data/types';
+import { DamagePanel } from './DamagePanel';
 import { LiveSensorBadge, sensorState } from '../ui/LiveSensor';
 import '../ui/live-sensor.css';
 
@@ -79,6 +80,10 @@ export function AgentApp() {
           <div className="ag-sub">Simulated agent · Cedar Hollow office</div>
         </div>
       </header>
+
+      <div className="ag-est-wrap">
+        <DamagePanel view={view} />
+      </div>
 
       <main className="ag-main">
         <aside className="hc-panel ag-list">

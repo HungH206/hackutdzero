@@ -47,3 +47,23 @@ html:has(.ag), body:has(.ag) { background: var(--bg); }
 .ag-time { font-family: var(--font-mono); color: var(--label-3); flex: none; }
 .ag-foot { padding: var(--s-2) var(--margin-page) var(--s-4); font: var(--t-footnote); color: var(--label-3); }
 @media (max-width: 1100px) { .ag-main { grid-template-columns: 1fr; } .ag-kpis { display: none; } .ag-cols { grid-template-columns: 1fr; } }
+
+/* Damage estimate. Tokens only. */
+.ag-est-wrap { padding: var(--s-4) var(--margin-page) 0; }
+.ag-est { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-4); }
+.ag-est-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+.ag-est-big { font: var(--t-headline); font-variant-numeric: tabular-nums; letter-spacing: var(--t-headline-track); }
+.ag-est-limit { display: flex; flex-direction: column; }
+.ag-est-limit input { width: 160px; padding: var(--s-2) var(--s-3); font: var(--t-subhead); font-variant-numeric: tabular-nums; color: var(--label); background: var(--surface-1); border: 1px solid var(--separator); border-radius: var(--r-control); }
+.ag-est-limit input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.ag-est-bar { position: relative; height: var(--s-2); background: var(--surface-3); border-radius: var(--r-bar); overflow: hidden; }
+.ag-est-fill { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-bar); transition: width var(--dur-count) var(--ease); }
+.ag-est-fill--high { background: var(--waiting-tint); }
+.ag-est-fill--likely { background: var(--critical); }
+.ag-est-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.ag-est-list li { display: flex; align-items: baseline; gap: var(--s-3); padding: var(--s-2) var(--s-3); background: var(--surface-2); border-radius: var(--r-card); }
+.ag-est-list .ag-name { flex: 1; }
+.ag-est-amt { font: var(--t-subhead); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ag-est-how { font: var(--t-footnote); color: var(--label-2); }
+.ag-est-how summary { cursor: pointer; color: var(--label-3); }
+.ag-est-how p { margin: var(--s-2) 0 0; max-width: 78ch; }
