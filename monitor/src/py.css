@@ -315,3 +315,15 @@
 @media (max-width: 1180px) { .py-bottom, .py-bottom.shifted { left: 20px; right: 20px; width: auto; } }
 .py-legend { width: 214px; }
 .py-app.screen-tree .toasts { top: 128px; }
+
+/* Map screen in the same teal night palette. */
+.py-app .glass { background: rgba(8, 18, 19, 0.9); border-color: rgba(160, 220, 210, 0.14); }
+.py-app .bldg { fill: #0d1c1c; stroke: #24403e; }
+.py-app .map-label { fill: #4f6a67; }
+.py-app .map-label.bldg-name { fill: #a9bfbb; font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
+.py-app .map-canvas { background: #030707; }
+.py-app .qp-row, .py-app .gauge-card, .py-app .ladder-track, .py-app .factor, .py-app .sensor, .py-app .override { background: rgba(160, 220, 210, 0.05); }
+.py-app .qp-row.sel { border-color: #e8c98a; }
+.py-app .seg button.on, .py-app .tool.on { background: #e8c98a; color: #1d1404; }
+.py-app .act.good { background: #e8c98a; }
+.py-app .detail, .py-app .queue-panel { background: rgba(7, 16, 17, 0.97); }

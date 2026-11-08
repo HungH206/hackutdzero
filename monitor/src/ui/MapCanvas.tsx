@@ -190,8 +190,8 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
       >
         <defs>
           <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="7" height="7" fill="#121213" />
-            <line x1="0" y1="0" x2="0" y2="7" stroke="#2e2e31" strokeWidth="2.5" />
+            <rect width="7" height="7" fill="#081010" />
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#1a2b2a" strokeWidth="2.5" />
           </pattern>
           <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M20 0H0V20" fill="none" stroke="#ffffff" strokeOpacity="0.025" />
@@ -227,7 +227,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         </defs>
 
         {/* Basemap, drawn in-app so the demo never depends on map tiles. */}
-        <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="#0e0e0f" />
+        <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="#050b0b" />
         <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="url(#grid)" />
         <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616 L1200 900 L-200 900z" fill="#0d1519" />
         <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616" stroke="#1c3340" strokeWidth="3" fill="none" />
@@ -239,10 +239,10 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
           Hollow Park
         </text>
         {Array.from({ length: 24 }, (_, i) => (
-          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="#161617" strokeWidth={2} />
+          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="#0b1616" strokeWidth={2} />
         ))}
         {Array.from({ length: 16 }, (_, i) => (
-          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="#161617" strokeWidth={2} />
+          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="#0b1616" strokeWidth={2} />
         ))}
         {[
           { d: 'M-60 62 H1060', n: 'RIDGE RD', x: 760, y: 56 },
@@ -252,8 +252,8 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
           { d: 'M642 -40 V680', n: 'MILL ST', x: 0, y: 0, vx: 636, vy: 470 },
         ].map((r) => (
           <g key={r.n}>
-            <path d={r.d} stroke="#1d1d1f" strokeWidth={15} />
-            <path d={r.d} stroke="#303033" strokeWidth={1} strokeDasharray="5 9" />
+            <path d={r.d} stroke="#0f1d1d" strokeWidth={15} />
+            <path d={r.d} stroke="#1d3332" strokeWidth={1} strokeDasharray="5 9" />
             {'vx' in r ? (
               <text x={r.vx} y={r.vy} className="map-label road" transform={`rotate(-90 ${r.vx} ${r.vy})`}>
                 {r.n}
@@ -284,7 +284,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
 
         {unknownZone && (
           <g>
-            <rect {...unknownZone} rx={10} fill="url(#hatch)" stroke="#47474c" strokeDasharray="4 4" />
+            <rect {...unknownZone} rx={10} fill="url(#hatch)" stroke="#3b5352" strokeDasharray="4 4" />
             <text x={unknownZone.x + 10} y={unknownZone.y - 8} className="map-label bldg-name">
               UNKNOWN · NO SENSORS (NOT “SAFE”)
             </text>
