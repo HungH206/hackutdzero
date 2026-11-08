@@ -29,7 +29,13 @@ if (!llm) console.warn('GEMINI_API_KEY is not set. Using keyword matching.');
 
 const live = messagingEnabled && Boolean(env.PHOTON_API_KEY && env.PHOTON_PROJECT_ID);
 const photon = live ? photonClient(env.PHOTON_API_KEY!) : null;
-const send: Send = photon ? photonSend(photon, env.PHOTON_PROJECT_ID!) : async (to, text) => console.log(`(not sent, no Photon key) to ${to.name}: ${text}`);
+const allowedHandles = new Set((env.PHOTON_ALLOWED_HANDLES ?? '').split(',').map((h) => h.trim()).filter(Boolean));
+const handleAllowed = (handle: string) => !allowedHandles.size || allowedHandles.has(handle);
+const liveSend = photon ? photonSend(photon, env.PHOTON_PROJECT_ID!) : null;
+const send: Send = liveSend ? async (to, text, key) => {
+  if (!handleAllowed(to.handle)) throw new Error('Recipient is outside the authorized test allowlist.');
+  await liveSend(to, text, key);
+} : async (to, text) => console.log(`(not sent, no Photon key) to ${to.name}: ${text}`);
 if (!live) console.warn('Messaging is disabled. Texts are printed only. Enable PHOTON_SEND_ENABLED only for an authorized phone test.');
 
 const voice = messagingEnabled && env.RETELL_API_KEY && env.RETELL_AGENT_ID && env.VOICE_FROM_NUMBER && env.DISPATCHER_PHONE
@@ -45,7 +51,7 @@ if (!voice) console.warn('Voice is off. Set RETELL_API_KEY, RETELL_AGENT_ID, VOI
 const dispatcherAsk = { ...(env.DISPATCHER_PHONE ? { dispatcherHandle: env.DISPATCHER_PHONE } : {}), answerDispatcher: (s: Snapshot, q: string) => answerDispatcher(llm, s, q) };
 const agent: Agent = new Agent({ db, store, send, understand, ...dispatcherAsk, ...(voice ? { voice } : {}) });
 if (voice) startVoiceServer(voice, env.RETELL_API_KEY!, Number(env.VOICE_PORT ?? 8788));
-if (live) subscribe(env.PHOTON_PROJECT_ID!, env.PHOTON_API_KEY!, store, (m) => agent.handle(m));
+if (live) subscribe(env.PHOTON_PROJECT_ID!, env.PHOTON_API_KEY!, store, async (m) => { if (handleAllowed(m.handle)) await agent.handle(m); });
 const briefing = new Briefing(llm);
 
 // Chat test: the same agent logic, but replies are captured instead of texted, so no real phone gets a message.
@@ -76,7 +82,10 @@ const chat = (handle: string, text: string) => {
   return result;
 };
 
-startAdmin({ port: Number(env.PORT ?? env.ADMIN_PORT ?? 8787), host: adminHost, adminToken: env.ADMIN_TOKEN, db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text, building) => agent.announce(text, building), allowedOrigins: (env.ADMIN_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',').map((o) => o.trim()).filter(Boolean), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
+startAdmin({ port: Number(env.PORT ?? env.ADMIN_PORT ?? 8787), host: adminHost, adminToken: env.ADMIN_TOKEN, db, store, agent, assign: photon ? (h) => {
+  if (!handleAllowed(h)) throw new Error('Recipient is outside the authorized test allowlist.');
+  return assignLine(photon, env.PHOTON_PROJECT_ID!, h);
+} : null, chat, announce: (text, building) => agent.announce(text, building), allowedOrigins: (env.ADMIN_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',').map((o) => o.trim()).filter(Boolean), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
 
 let running = false;
 setInterval(async () => {
