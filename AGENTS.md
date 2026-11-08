@@ -13,7 +13,7 @@ Headcount is a plug-in home sensor plus a live dispatch system for disaster resp
 ## Challenges and tracks
 - **State Farm** (primary): "The Worst Day, at Scale: Intelligent Catastrophe Response." Identify those with the most urgent needs, coordinate assistance, ensure no one is overlooked.
 - **SpacetimeDB** (main track): Spacetime must power the app's primary functionality. Public GitHub source required to win.
-- **CBRE** (third): connect fragmented real estate data to predict operational failures, quantify business impact, or act before disruptions spread.
+- **CBRE** (third, **deprioritized**): connect fragmented real estate data to predict operational failures, quantify business impact, or act before disruptions spread. What exists is left as is. Do not expand it or add features to it until the State Farm workflow (disaster to welfare check) is solid. It is not part of the primary demo.
 - HackUTD track: Best Hardware (to be confirmed). Max 3 sponsor challenges and 1 HackUTD track.
 
 ## Team
@@ -24,6 +24,8 @@ Avin (pitching, hardware, Raspberry Pi), Hung (SpacetimeDB backend), Aryan, Aaha
 2. **Never contact real emergency services.** The 911 hand-off is a **simulated** feed. Do not add code that calls, texts, or emails real people or services.
 3. **Need-based ranking only.** Never use income, race, immigration status, or insurance policy value as an input. Every score must show its reason. Humans can override, and overrides are logged.
 4. **One source of truth for priority.** HPI is computed **only** in the SpacetimeDB `recompute_hpi` reducer. Dashboards, the map, the wall screen and the phone app only **read** the `priority` table. Do not re-implement scoring in a client.
+4a. **Silence is never an injury.** Missing data raises a household for human verification; it never sets a final state or says someone is hurt. Silence counts only after a confirmed event. See `docs/HPI.md`.
+4b. **Every state-changing reducer is authorized.** Dispatcher actions (`override_priority`, `set_final_state`, `register_node`, `recompute_hpi`, every `sim_*`) require an operator. Household check-ins, heartbeats and events require that household's registered device or an operator. New reducers must follow the same pattern (`requireOperator` / `requireHouseholdAccess` in `spacetimedb/src/index.ts`) and get an authorization test in `spacetimedb/test/auth.test.ts`.
 5. **The math lives in `README.md`** (section "Headcount Priority Index"). If you change the formula, change the README in the same commit.
 6. **No secrets in the repo.** It is public. No API keys, Wi-Fi passwords, tokens, or `.env` files. Use `.env.example` with placeholder values.
 7. **Be honest in docs.** Update the Status table in `README.md` to say what is actually built. Do not describe planned features as working.
@@ -53,11 +55,12 @@ Also needed for the demo: a **demo control panel** (trigger quake / fire / power
 - `/monitor`: Vite + React dashboard. `npm run dev:local` runs the module in-process (no server). `npm run dev` connects to a published module after `npm run generate`.
   Screens: network graph, operations overview, houses, building view, live map, analytics, event log, plus the CBRE view (`?app=cbre`). `npm run dashboards` serves each on its own localhost port (5180-5186), all sharing one backend.
   **Graphics revamp handoff:** `docs/GRAPHICS_HANDOFF.md` (data contract, per-screen requirements, design references, what not to touch).
-- Not yet done: publishing to a real SpacetimeDB server, reconciling with Hung's schema, responders/assignments.
+- Published to Maincloud `rescuedb` on Nov 8, 2026 (40 synthetic households). Monitor and CLI defaults use this hosted database. Still pending: reconciling with Hung's schema, responders/assignments, and two-window browser verification.
 
 ## Proposed data model (a proposal: reconcile with Hung's actual schema before relying on it)
 - Tables: `building`, `household` (profile and location), `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority` (HPI, factor breakdown, reason), `responder`, `assignment`, `override_log`.
 - Reducers: `register_node`, `heartbeat`, `report_event`, `confirm_disaster`, `submit_checkin`, `recompute_hpi`, `advance_escalation` (scheduled), `assign_responder`, `override_priority`, plus demo-only `sim_*` reducers.
+- **What is actually built** (`spacetimedb/src/index.ts`; the list above is the original proposal and the schema is now frozen unless a needed relationship is missing): tables `clock`, `building`, `household`, `node`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `override_log`, `timeline`, `tick_schedule`, plus **private** `operator` and `node_owner`. Reducers `register_node` (operator provisioning), `add_operator`, `remove_operator`, `heartbeat`, `report_event`, `submit_checkin`, `recompute_hpi`, `override_priority`, `set_final_state`, scheduled `tick`, and `sim_quake`, `sim_fire`, `sim_power_loss`, `sim_comms_outage`, `sim_fast_forward`, `sim_reset`. There are no `responder` or `assignment` tables.
 
 ## Suggested tech (confirm versions in each tool's docs before using)
 - Backend: **SpacetimeDB**, TypeScript module. Verify scheduled-reducer syntax and the HTTP/SDK API in the official docs.
@@ -83,6 +86,13 @@ This is a plan. Create folders as they are needed and keep the layout consistent
 - A Raspberry Pi 5 named `hackpi` is set up headless (Raspberry Pi OS Lite, 64-bit) with a Pi Camera Module 3. It is reached over SSH on the team's phone hotspot (`ssh hackpi` using key auth). Credentials are not stored in this repo. The hotspot is IPv6-only, so the Pi is configured to prefer IPv4.
 - Venue Wi-Fi may block device-to-device traffic. Plan the demo on a phone hotspot and a hosted backend or a local server both reachable on that network.
 - Spare hardware: Raspberry Pi 3, 5x ESP32, M5Stack M5GO kit, DRV2605L haptic driver, servos, Nintendo Switch Joy-Cons. Loaner sensors may be available at the event (shock/vibration, PIR, flame, temperature, buttons, buzzers).
+
+## Verifying your change
+- `cd spacetimedb && npm run typecheck && npm test` (85 tests, in-memory datastore). Never read `h.db` inside `withReducerTx` in a test: it traps the harness.
+- `cd monitor && npm run typecheck && npm run build`.
+- For the shared Maincloud database use `cd monitor && npm run db:publish && npm run generate`; `db:status`, `promote`, and `verify:live` read the same Vite development environment. `verify:live` resets simulation state. Local-only workflow: `spacetime publish --server local --module-path spacetimedb headcount` (always pass `--server local`; the default server may be hosted, and run it from this repo so the CLI does not read another project's `spacetime.json`), `npm run generate`, then `npm run verify:live` in `/monitor`.
+- A browser is read-only until promoted: `npm run promote` in `/monitor`. The dashboard persists its SpacetimeDB token in `localStorage`, so an identity survives reloads; anonymous connections are issued a new identity every time, so do not remove that.
+- Details and the demo script: `docs/HPI.md`, `docs/DEMO_SCENARIO.md`.
 
 ## How to work in this repo
 1. Read `TODO.md`, pick an unclaimed item, write your name next to it.

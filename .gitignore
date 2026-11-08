@@ -3,3 +3,11 @@
 node_modules/
 dist/
 *.log
+monitor/src/module_bindings/
+
+# Local design references (never commit)
+design-refs/
+
+# Local environment overrides and credentials
+.env.*
+!.env.example

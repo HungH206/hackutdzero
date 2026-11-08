@@ -38,7 +38,7 @@ The dashboard's headline number is a live counter, such as **"34 of 40 accounted
 
 ## How it works
 
-1. **Install.** A plug-in node registers a household and its (opt-in) profile: location, age, mobility, powered medical equipment and its backup runtime, language.
+1. **Install.** A dispatcher registers a plug-in node to a household and its (opt-in) profile: location, age, mobility, powered medical equipment and its backup runtime, language. Only that node's identity (or a dispatcher) can then answer for the household.
 2. **Sense.** The node watches for shaking and sends a heartbeat every few seconds.
 3. **Filter false alarms.** A short spike (a slammed door) is ignored. Sustained, multi-axis shaking is only **confirmed** when two or more nearby homes agree within seconds.
 4. **Check in.** After a confirmed event, the node asks "Are you OK?" Residents answer with one physical button. No phone or app is needed.
@@ -85,8 +85,8 @@ $$S = \lambda \cdot \min\bigl(1,\; \delta \cdot S_0 + \alpha\bigr), \qquad S_0 =
 
 | Symbol | Meaning |
 |---|---|
-| $s$ | Minutes since the last signal (heartbeat or check-in) after the event |
-| $\alpha$ | $+0.2$ if the heartbeat stopped **abruptly** at the moment of shaking or fire, otherwise 0 |
+| $s$ | Minutes since the later of the last signal (heartbeat or check-in) and the moment the event was confirmed, minus a 30 s heartbeat grace. **Zero when no event is confirmed** (an offline node with no event is flagged "verify", not scored as hurt), and zero while the node keeps sending. |
+| $\alpha$ | $+0.2$ if the heartbeat stopped **abruptly** at the moment of shaking or fire (only when an event is confirmed), otherwise 0 |
 | $\delta$ | $0.5$ if the motion sensor saw movement in the last 5 minutes ("moving, not responding"), otherwise 1 |
 | $\lambda$ | $0.5$ if the whole area went quiet together with no shaking (a **communications outage**, not individual distress), otherwise 1 |
 
@@ -135,7 +135,7 @@ The weights and thresholds above are our **starting design values**, not validat
 
 Every score is shown with its reason, for example: *"82, oxygen concentrator, heavy-shake zone, silent 14 min."*
 
-**Where it is implemented:** the HPI is computed in one place, the SpacetimeDB `recompute_hpi` reducer. It runs after every relevant event (shaking confirmed, check-in, power lost, heartbeat lost) and on a scheduled tick, and it writes each household's score, factor breakdown and reason string to a `priority` table. The map, queue and every other surface only **read** that table, so they can never disagree.
+**Where it is implemented:** the HPI is computed in one place, the SpacetimeDB `recompute_hpi` reducer. It runs after every relevant event (shaking confirmed, check-in, power lost, heartbeat lost) and on a scheduled tick, and it writes each household's score, factor breakdown and reason string to a `priority` table. The map, queue and every other surface only **read** that table, so they can never disagree. Each factor's meaning, weight, source, uncertainty and justification is in [`docs/HPI.md`](docs/HPI.md).
 
 ### Power-loss clock
 Each node runs from the wall with a battery behind it. If mains power drops, the node reports `power_lost`. For a household with powered medical equipment, that starts a clock:
@@ -208,7 +208,8 @@ Home nodes (sensors + button) --Wi-Fi--> SpacetimeDB --live subscriptions--> the
 ```
 
 - **SpacetimeDB** holds all live state (households, nodes, events, check-ins, escalations, assignments) and runs confirmation, ranking and escalation as server logic. The dashboard subscribes to the ranked queue, so changes appear on every screen instantly.
-- **Nodes** report heartbeats and events. Real nodes and simulated ones look identical to the server.
+- **Nodes** report heartbeats and events. Real nodes and simulated ones look identical to the server. A real node that stops sending is marked offline after 30 s and flagged for verification; silence alone never marks anyone found, OK or injured.
+- **Who may change what.** Overrides, "mark found", recompute, node registration and every `sim_*` reducer are limited to **operators** (dispatchers). The database publisher is the first operator and can add more with `add_operator`. A household's check-in, heartbeat and sensor events are accepted only from the device identity an operator registered for it, or from an operator (recorded as `dispatcher`). The operator and device lists are private tables. Overrides need a reason and are written to an audit log that survives a demo reset. Details: [`docs/HPI.md`](docs/HPI.md#who-may-change-what).
 
 ### Four surfaces, one backend
 
@@ -234,13 +235,13 @@ Update this table honestly before submitting.
 |---|---|
 | Concept, HPI formula, escalation design | Done (design) |
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
-| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). Target server: SpacetimeDB Maincloud, database **`rescuedb`** (the RescueGrid workspace). `rescuegrid-test/rescuegrid` now points its `spacetime.json` and publish scripts at this module. **This module has not been published to `rescuedb` yet**; until it is, `rescuedb` still holds the earlier starter template. |
+| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb`; 85 automated tests. Published to **Maincloud `rescuedb`** on Nov 8, 2026, with 40 synthetic households. The existing `rescuegrid-dev` database was left untouched. **20/20 live SDK checks passed** against Maincloud (sync, authorization, token reuse, scoring and escalation). |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
-| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: 3D model of the neighborhood with the dispatch queue (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. The live SpacetimeDB connection is written but **untested** until bindings are generated. |
+| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: 3D model of the neighborhood with the dispatch queue (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
 | In-house wall screen (M5GO) | Planned |
 | Phone web app | Planned |
-| CBRE operations dashboard | Built as `/?app=cbre` in the monitor app. Reads the same live events; property and dollar figures are **synthetic** and come from a simple estimate model (see "CBRE view" below). |
+| CBRE operations dashboard | **Deprioritized.** Built as `/?app=cbre` in the monitor app and left as is: it is no longer part of the primary demo, is off by default in `npm run dashboards` (add `-- --all`), and gets no further work until the State Farm workflow is solid. Property and dollar figures are **synthetic** (see "CBRE view" below). |
 | Demo control panel (trigger events, fast-forward time) | Built into the monitor dashboard |
 | Node firmware (heartbeat, shake classifier, buttons) | Planned |
 | Power-loss clock | Built in the module (simulated power loss; real `power_lost` from nodes not yet tested) |
@@ -249,50 +250,75 @@ Update this table honestly before submitting.
 
 ## Running it
 
-### Backend: SpacetimeDB module (`/spacetimedb`)
+### Shared live database (Maincloud)
+
+The Headcount module is published at **`rescuedb`**, using **`wss://maincloud.spacetimedb.com`**. [Database dashboard](https://spacetimedb.com/rescuedb). All default monitor, publish, status, promotion and live-verification commands target this database. No local database server is needed.
 
 ```bash
 cd spacetimedb
-npm install
-npm test            # HPI worked examples + full scenario in the in-memory test datastore
+npm ci
 npm run typecheck
+npm test
+cd ../monitor
+npm ci
+npm run generate
+npm run db:status
+npm run dev
 ```
 
-To run it for real, install the SpacetimeDB CLI ([spacetimedb.com/install](https://spacetimedb.com/install)), then:
-
-```bash
-spacetime start                                  # local server on ws://localhost:3000
-spacetime publish --module-path spacetimedb headcount
-# shared team database (RescueGrid on Maincloud):
-spacetime publish --server maincloud --module-path spacetimedb rescuedb
-```
-
-The CLI commands above have not been run yet. Publishing this module over the starter template in `rescuedb` changes the schema completely, so the first publish needs the CLI's clear-data option; that is safe only while `rescuedb` holds no data worth keeping. Check flag names against `spacetime publish --help` for your CLI version.
-
-### Monitor dashboard (`/monitor`)
+Open the Local URL printed by Vite. With the dashboard connected, in another terminal:
 
 ```bash
 cd monitor
-npm install
-npm run dev:local   # no server needed: runs the module in-process (local fallback)
+npm run promote -- --list
+npm run promote
 ```
 
-With a published module instead:
+Reload the dashboard to enable dispatcher controls. `promote` grants access to every currently connected identity; use the Copy command button in New Simulation to promote just one. The publishing CLI identity must have operator access. The browser keeps its token in localStorage, so reloads retain the identity. Another browser profile or cleared site data requires promotion again.
+
+The browser defaults to Maincloud even without an environment file. Optional overrides go in `monitor/.env.local` (see `.env.example`); restart Vite after editing. Node scripts read the same development environment as Vite and derive their CLI server from the WebSocket URL. `SPACETIME_DB` and `SPACETIME_SERVER` are optional CLI-only overrides; keep them consistent with the monitor target.
+
+To deploy later module changes:
 
 ```bash
-npm run generate    # spacetime generate -> src/module_bindings
-npm run dev         # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .env.example)
+cd monitor
+npm run db:publish
+npm run generate
+npm run db:status
 ```
+
+Publishing refuses data deletion (`--delete-data=never`). Review any migration conflict rather than clearing the shared database. Publishing the module does not deploy the monitor website; run the monitor locally or host its built frontend separately.
+
+```bash
+npm run verify:live
+```
+
+**Live verification resets the target simulation.** Run it between demos, not during an active session. It tests subscriptions, authorization and token reuse with independent SDK clients and removes its temporary dispatcher afterward. Real-browser interaction in two windows is still a manual check.
+
+### Optional local server or fallback
+
+See [local server instructions](docs/RUN_LOCAL.md). The explicit local commands are `npm run db:start`, `npm run db:publish:local` and `npm run db:status:local`. To connect the monitor and promotion commands to local Headcount, set:
+
+```dotenv
+VITE_SPACETIME_URI=ws://localhost:3000
+VITE_SPACETIME_DB=headcount
+```
+
+Remove those overrides to return to Maincloud. `npm run dev:local` instead uses an in-process fallback; it does not connect to Maincloud.
+
+The walkthrough for the primary demo, an earthquake at Alder Court, is in [`docs/DEMO_SCENARIO.md`](docs/DEMO_SCENARIO.md).
 
 **Local fallback.** `dev:local` runs this repo's actual module code, including `recompute_hpi`, inside SpacetimeDB's official in-memory test datastore, which runs in the Vite dev server. It exists for development and as a demo backup if the server or network fails. It is not a SpacetimeDB server: there is no persistence and no multi-client sync. The header shows which source is live.
 
 Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
 
-One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 main dashboard (3D neighborhood model), 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics, 5186 CBRE. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
+One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 main dashboard (3D neighborhood model), 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics. 5186 CBRE is optional and only opens with `-- --all`. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
 
 Screens and deep links: `/` main dashboard (3D model of Cedar Hollow with the dispatch queue; falls back to a flat map without WebGL), `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
 
-### CBRE view (estimate model)
+### CBRE view (estimate model, deprioritized)
+
+Optional and not part of the primary State Farm demo. Kept as is.
 
 The CBRE screen turns the same live events into per-building operational impact. It does **not** use or change the HPI and never ranks people. Inputs: confirmed quake epicenters (shaking at a building falls off linearly to zero at 520 map units), confirmed fires, and the share of nearby nodes on battery (buildings without their own nodes, the office and warehouse, use homes within 260 units, labeled "inferred"). Each building system (structure, elevator, power, HVAC, fire suppression, water) gets a failure probability from those inputs and the building's risk score. Expected downtime is the largest system downtime weighted by its probability (+48 h with a fire); expected repair cost is the probability-weighted sum. Revenue at risk = hourly revenue × occupancy × min(horizon, downtime) × max(failure odds, 0.6 × power-out share), plus a quarter month of revenue with a fire. All rents, costs, tenants and repair figures in `monitor/src/cbre/portfolio.ts` are invented.
 

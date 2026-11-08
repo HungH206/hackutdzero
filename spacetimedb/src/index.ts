@@ -9,6 +9,7 @@
 
 import { ScheduleAt, SenderError, schema, t, table, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import * as H from './hpi';
+import { CLAIM_KINDS, RELATIONS, accountFor, isHighRisk, type Claim } from './accounting';
 import { BUILDINGS, seedHouseholds } from './seed';
 
 // ---------- Tables ----------
@@ -162,6 +163,71 @@ const tickSchedule = table({ name: 'tick_schedule' }, {
   scheduledAt: t.scheduleAt(),
 });
 
+// Authorization. Both tables are PRIVATE: clients cannot read them.
+//  * operator: dispatchers. Only they may override priority, set a final state,
+//    run the demo `sim_*` reducers, recompute, or manage this list. The database
+//    owner (whoever publishes the module) is the first operator.
+//  * node_owner: which client identity (wall screen, hardware node, phone) may
+//    speak for which household. Only operators create these bindings.
+const operator = table({ name: 'operator' }, {
+  identity: t.identity().primaryKey(),
+});
+const nodeOwner = table({ name: 'node_owner' }, {
+  id: t.u64().primaryKey().autoInc(),
+  householdId: t.u32().index(),
+  identity: t.identity().index(),
+});
+
+// ---------- Photon agent: who has been accounted for, and by whom ----------
+
+// PRIVATE. What people said about each other. Clients only ever see the derived status.
+const personClaim = table({ name: 'person_claim' }, {
+  id: t.u64().primaryKey().autoInc(),
+  householdId: t.u32().index(),
+  /** Opaque hash of the sender. Phone numbers never enter this database. */
+  sourceKey: t.string(),
+  /** self | visit | family | neighbor */
+  relation: t.string(),
+  firsthand: t.bool(),
+  /** safe | away | needs_help | unknown */
+  kind: t.string(),
+  detail: t.string(),
+  atMicros: t.u64(),
+});
+
+const accounting = table({ public: true }, {
+  householdId: t.u32().primaryKey(),
+  /** accounted | reported | needs_help | conflict | unaccounted */
+  status: t.string(),
+  sources: t.u32(),
+  note: t.string(),
+  updatedAtMicros: t.u64(),
+});
+
+const headcountSummary = table({ name: 'headcount_summary', public: true }, {
+  id: t.u8().primaryKey(),
+  total: t.u32(),
+  accounted: t.u32(),
+  reported: t.u32(),
+  needsHelp: t.u32(),
+  conflict: t.u32(),
+  unaccounted: t.u32(),
+  eventActive: t.bool(),
+});
+
+const helpTask = table({ name: 'help_task', public: true }, {
+  id: t.u64().primaryKey().autoInc(),
+  householdId: t.u32().index(),
+  /** proposed | approved | asked | accepted | done | cancelled */
+  state: t.string(),
+  /** Display text only, such as "Neighbor, 2 min away". Never a name or number. */
+  helperLabel: t.string(),
+  reason: t.string(),
+  approvedBy: t.string(),
+  createdAtMicros: t.u64(),
+  updatedAtMicros: t.u64(),
+});
+
 const spacetimedb = schema({
   clock,
   building,
@@ -175,6 +241,12 @@ const spacetimedb = schema({
   overrideLog,
   timeline,
   tickSchedule,
+  operator,
+  nodeOwner,
+  personClaim,
+  accounting,
+  headcountSummary,
+  helpTask,
 });
 export default spacetimedb;
 
@@ -196,7 +268,14 @@ const MOTION_WINDOW_MIN = 5;
 const OUTAGE_RADIUS = 220;
 const OUTAGE_SHARE = 0.6;
 const FLAME_CONFIRM_TEMP_C = 5;
-const FINAL = { unresolved: 'unresolved', ok: 'found_ok', help: 'found_needs_help', assisted: 'assisted' } as const;
+/** A real node that sends nothing for this long is marked offline (simulated nodes are driven by the tick). */
+const HEARTBEAT_TIMEOUT_MIN = 0.5;
+const MAX_TEXT = 280;
+/** simBehavior for a household a real person answers for over text. Its node still heartbeats, but nothing answers for it. */
+const AGENT_LINKED = 'agent';
+const HELP_TASK_STATES = ['proposed', 'approved', 'asked', 'accepted', 'done', 'cancelled'];
+const CHECKIN_SOURCES = ['wall screen', 'phone', 'dispatcher'];
+const FINAL ={ unresolved: 'unresolved', ok: 'found_ok', help: 'found_needs_help', assisted: 'assisted' } as const;
 
 // ---------- Helpers ----------
 
@@ -207,6 +286,40 @@ function now(ctx: Ctx): bigint {
 const minutesBetween = (later: bigint, earlier: bigint) => Number(later - earlier) / 60_000_000;
 const micros = (minutes: number) => BigInt(Math.round(minutes * 60_000_000));
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+
+// ---------- Authorization and input checks ----------
+
+/** The scheduler and the in-process local bridge run as "internal"; everyone else is a client. */
+const isInternal = (ctx: Ctx) => ctx.senderAuth.isInternal;
+const isOperator = (ctx: Ctx) => isInternal(ctx) || ctx.db.operator.identity.find(ctx.sender) !== null;
+const actor = (ctx: Ctx) => (isInternal(ctx) ? 'system' : ctx.sender.toHexString().slice(0, 12));
+
+function requireOperator(ctx: Ctx, what: string) {
+  if (!isOperator(ctx)) throw new SenderError(`${what} is limited to dispatchers (operators).`);
+}
+
+function ownsHousehold(ctx: Ctx, householdId: number) {
+  for (const o of ctx.db.nodeOwner.householdId.filter(householdId)) if (o.identity.isEqual(ctx.sender)) return true;
+  return false;
+}
+
+/** Operators, and identities an operator bound to this household, may speak for it. */
+function requireHouseholdAccess(ctx: Ctx, householdId: number, what: string) {
+  if (!isOperator(ctx) && !ownsHousehold(ctx, householdId)) {
+    throw new SenderError(`${what} for household ${householdId} is limited to its registered device or a dispatcher.`);
+  }
+}
+
+function requireFinite(name: string, v: number) {
+  if (!Number.isFinite(v)) throw new SenderError(`${name} must be a finite number.`);
+}
+
+function requireText(name: string, v: string, required: boolean): string {
+  const s = v.trim();
+  if (required && !s) throw new SenderError(`${name} is required.`);
+  if (s.length > MAX_TEXT) throw new SenderError(`${name} must be at most ${MAX_TEXT} characters.`);
+  return s;
+}
 
 function log(ctx: Ctx, kind: string, severity: string, householdId: number, message: string) {
   ctx.db.timeline.insert({ id: 0n, atMicros: now(ctx), kind, severity, householdId, message });
@@ -246,6 +359,7 @@ function enterStep(ctx: Ctx, h: Household, step: number) {
 function startCheckins(ctx: Ctx, affected: Household[], why: string) {
   const at = now(ctx);
   let n = 0;
+  const names: string[] = [];
   for (const h of affected) {
     if (!h.hasSensor || isResolved(h)) continue;
     const ci = ctx.db.checkin.householdId.find(h.id);
@@ -255,8 +369,10 @@ function startCheckins(ctx: Ctx, affected: Household[], why: string) {
     const esc = ctx.db.escalation.householdId.find(h.id);
     if (esc) ctx.db.escalation.householdId.update({ ...esc, step: 1, stepAtMicros: at, nextAtMicros: at, done: false });
     n++;
+    names.push(`${h.name} (${h.unit})`);
   }
-  if (n > 0) log(ctx, 'checkin', 'info', 0, `Step 1: "Are you OK?" sent to ${n} households (${why}).`);
+  if (n === 1) log(ctx, 'checkin', 'info', 0, `Step 1: "Are you OK?" sent to ${names[0]} (${why}).`);
+  else if (n > 1) log(ctx, 'checkin', 'info', 0, `Step 1: "Are you OK?" sent to ${n} households (${why}).`);
 }
 
 function answerCheckin(ctx: Ctx, householdId: number, answer: 'ok' | 'help', source: string) {
@@ -316,7 +432,15 @@ function recompute(ctx: Ctx) {
     const I = H.shakingIntensity(n.shakePeakG, n.shakeDurationS, n.shakeConfirmed);
     const E = H.exposure({ shaking: I, buildingRisk: buildings.get(h.buildingId)?.risk ?? 0.5, flame, tempRiseC: n.tempRiseC, neighborFire });
 
-    const minutesSilent = n.online ? 0 : Math.max(0, minutesBetween(at, n.lastSignalMicros) - HEARTBEAT_GRACE_MIN);
+    // Silence is evidence only AFTER a confirmed event, and only counts from the later of the
+    // last signal and the event. A node that is offline with no event (or was already offline
+    // before the event) is "unknown, verify", never evidence that the person is hurt.
+    const eventActive = firstEvent > 0n;
+    const silentSince = n.lastSignalMicros > firstEvent ? n.lastSignalMicros : firstEvent;
+    const minutesSilent = n.online || !eventActive ? 0 : Math.max(0, minutesBetween(at, silentSince) - HEARTBEAT_GRACE_MIN);
+    const offlineMin = n.online ? null : minutesBetween(at, n.lastSignalMicros);
+    const unexplainedOffline = !n.online && !eventActive;
+    const preEventOffline = !n.online && eventActive && n.lastSignalMicros + micros(HEARTBEAT_GRACE_MIN) < firstEvent;
     const recentMotion = n.lastMotionMicros > 0n && minutesBetween(at, n.lastMotionMicros) <= MOTION_WINDOW_MIN;
     // Lambda: the whole area went quiet together with no shaking here.
     let commsOutage = false;
@@ -325,7 +449,7 @@ function recompute(ctx: Ctx) {
       const quiet = near.filter((o) => !nodes.get(o.id)?.online).length;
       commsOutage = near.length >= 3 && quiet / near.length >= OUTAGE_SHARE;
     }
-    const S = H.silence({ minutesSilent, abrupt: n.abrupt, recentMotion, commsOutage });
+    const S = H.silence({ minutesSilent, abrupt: n.abrupt && eventActive, recentMotion, commsOutage });
 
     const ci = ctx.db.checkin.householdId.find(h.id);
     const ciState = (ci?.state ?? 'none') as H.CheckinState;
@@ -350,7 +474,8 @@ function recompute(ctx: Ctx) {
     const reason = H.reason({
       age: h.age, medicalDevice: h.medicalDevice, mobilityLimited: h.mobilityLimited, livesAlone: h.livesAlone,
       languageBarrier: h.language !== 'English', language: h.language, infant: h.infant, shaking: I, flame, neighborFire,
-      tempRiseC: n.tempRiseC, checkin: ciState, minutesSilent: n.online ? null : minutesSilent, recentMotion, commsOutage, tth, override,
+      tempRiseC: n.tempRiseC, checkin: ciState, minutesSilent: n.online || !eventActive ? null : minutesSilent, recentMotion, commsOutage, tth, override,
+      offlineMin: unexplainedOffline ? offlineMin : null, preEventOffline,
     });
     const row = {
       householdId: h.id, scored: true, hpi, band: H.band(hpi), rank: 0, E, S, C, V, K, L, M, A, override,
@@ -378,11 +503,63 @@ function recompute(ctx: Ctx) {
     const nextAt = esc.stepAtMicros + micros(wait);
     if (nextAt !== esc.nextAtMicros) ctx.db.escalation.householdId.update({ ...esc, nextAtMicros: nextAt });
   }
+
+  refreshAccounting(ctx);
+}
+
+// ---------- Accounting: the count of who we know about ----------
+
+function refreshAccounting(ctx: Ctx) {
+  const at = now(ctx);
+  const tally = { accounted: 0, reported: 0, needs_help: 0, conflict: 0, unaccounted: 0 };
+  let total = 0;
+  const eventActive = activeDisasters(ctx).length > 0;
+  for (const h of ctx.db.household.iter()) {
+    const claims = [...ctx.db.personClaim.householdId.filter(h.id)] as unknown as Claim[];
+    const a = accountFor({ claims, highRisk: isHighRisk(h), finalState: h.finalState });
+    // During an event the count covers people we tried to reach or heard about, not the whole map.
+    const ci = ctx.db.checkin.householdId.find(h.id);
+    if (!eventActive || claims.length > 0 || (ci !== null && ci.state !== 'none')) {
+      total++;
+      tally[a.status]++;
+    }
+    const prev = ctx.db.accounting.householdId.find(h.id);
+    if (!prev) ctx.db.accounting.insert({ householdId: h.id, status: a.status, sources: a.sources, note: a.note, updatedAtMicros: at });
+    else if (prev.status !== a.status || prev.sources !== a.sources || prev.note !== a.note) {
+      ctx.db.accounting.householdId.update({ ...prev, status: a.status, sources: a.sources, note: a.note, updatedAtMicros: at });
+    }
+  }
+  const row = {
+    id: 0, total, accounted: tally.accounted, reported: tally.reported, needsHelp: tally.needs_help, conflict: tally.conflict,
+    unaccounted: tally.unaccounted, eventActive,
+  };
+  const prev = ctx.db.headcountSummary.id.find(0);
+  if (!prev) ctx.db.headcountSummary.insert(row);
+  else ctx.db.headcountSummary.id.update(row);
 }
 
 // ---------- Escalation ladder, check-in windows, simulated residents ----------
 
+/**
+ * Real nodes (not simulated) that stop sending are marked offline. `abrupt` is set when the last
+ * signal came right at a confirmed shake or flame, the "stopped at the moment of the event" case.
+ * Offline only means "no signal": it is never turned into an injury claim here.
+ */
+function markStaleNodes(ctx: Ctx) {
+  const at = now(ctx);
+  for (const h of ctx.db.household.iter()) {
+    if (h.simulated) continue;
+    const n = ctx.db.node.householdId.find(h.id);
+    if (!n || !n.online || minutesBetween(at, n.lastSignalMicros) <= HEARTBEAT_TIMEOUT_MIN) continue;
+    const gap = (a: bigint, b: bigint) => (a > b ? a - b : b - a);
+    const abrupt = (n.shakeConfirmed && n.shakeAtMicros > 0n && gap(n.lastSignalMicros, n.shakeAtMicros) <= CONFIRM_WINDOW_MICROS) || n.flame;
+    ctx.db.node.householdId.update({ ...n, online: false, abrupt });
+    log(ctx, 'node', 'warn', h.id, `Node for ${h.name} (${h.unit}) stopped sending${abrupt ? ' at the moment of the event' : ''}. Status unknown: verify.`);
+  }
+}
+
 function advance(ctx: Ctx) {
+  markStaleNodes(ctx);
   const at = now(ctx);
 
   for (const ci of ctx.db.checkin.iter()) {
@@ -416,16 +593,16 @@ function advance(ctx: Ctx) {
     if (esc.step === 1) {
       enterStep(ctx, h, hpi >= H.SKIP_TO_DISPATCH_HPI ? 4 : 2);
     } else if (esc.step === 2) {
-      if (h.simulated && h.simContact === 'reaches_ok') setFinal(ctx, h, FINAL.ok, 'Emergency contact confirmed they are OK (simulated).');
+      if (h.simulated && h.simContact === 'reaches_ok' && h.simBehavior !== AGENT_LINKED) setFinal(ctx, h, FINAL.ok, 'Emergency contact confirmed they are OK (simulated).');
       else enterStep(ctx, h, 3);
     } else if (esc.step === 3) {
-      if (h.simulated && h.simKnock === 'found_ok') setFinal(ctx, h, FINAL.ok, 'Volunteer knocked and found them OK (simulated).');
+      if (h.simulated && h.simKnock === 'found_ok' && h.simBehavior !== AGENT_LINKED) setFinal(ctx, h, FINAL.ok, 'Volunteer knocked and found them OK (simulated).');
       else {
-        if (h.simulated && h.simKnock === 'found_needs_help') setFinal(ctx, h, FINAL.help, 'Volunteer found them and they need help (simulated).');
+        if (h.simulated && h.simKnock === 'found_needs_help' && h.simBehavior !== AGENT_LINKED) setFinal(ctx, h, FINAL.help, 'Volunteer found them and they need help (simulated).');
         enterStep(ctx, ctx.db.household.id.find(h.id)!, 4);
       }
     } else if (esc.step === 4) {
-      if (h.simulated) setFinal(ctx, h, FINAL.assisted, 'Responders arrived and assisted (simulated).');
+      if (h.simulated && h.simBehavior !== AGENT_LINKED) setFinal(ctx, h, FINAL.assisted, 'Responders arrived and assisted (simulated).');
       else ctx.db.escalation.householdId.update({ ...esc, done: true });
     }
   }
@@ -531,8 +708,12 @@ function clearAll(ctx: Ctx) {
   ctx.db.checkin.clear();
   ctx.db.escalation.clear();
   ctx.db.priority.clear();
-  ctx.db.overrideLog.clear();
+  // override_log is deliberately NOT cleared: it is the audit trail, and a demo reset must not erase it.
   ctx.db.timeline.clear();
+  ctx.db.personClaim.clear();
+  ctx.db.accounting.clear();
+  ctx.db.headcountSummary.clear();
+  ctx.db.helpTask.clear();
 }
 
 // ---------- Lifecycle and tick ----------
@@ -540,10 +721,14 @@ function clearAll(ctx: Ctx) {
 export const init = spacetimedb.init((ctx) => {
   ctx.db.clock.insert({ id: 0, offsetMicros: 0n });
   ctx.db.tickSchedule.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.interval(TICK_MICROS) });
+  // The publisher is the first dispatcher. Everyone else is read-only until an operator adds them.
+  if (!isInternal(ctx) && ctx.db.operator.identity.find(ctx.sender) === null) ctx.db.operator.insert({ identity: ctx.sender });
   seed(ctx);
 });
 
 export const tick = spacetimedb.reducer({ onSchedule: tickSchedule }, { arg: tickSchedule.rowType }, (ctx) => {
+  // Scheduled reducers are also callable by clients unless we refuse them here.
+  if (!isInternal(ctx)) throw new SenderError('tick is run by the scheduler only.');
   // Simulated nodes heartbeat while they are online. Real nodes call `heartbeat`.
   const at = now(ctx);
   for (const h of ctx.db.household.iter()) {
@@ -556,18 +741,40 @@ export const tick = spacetimedb.reducer({ onSchedule: tickSchedule }, { arg: tic
 
 // ---------- Node reducers (real hardware and the simulator) ----------
 
-/** Claim a household for a real hardware node. Simulated behavior turns off for it. */
-export const register_node = spacetimedb.reducer({ householdId: t.u32() }, (ctx, { householdId }) => {
+/**
+ * Dispatcher-only provisioning: bind a device identity (hardware node, wall screen) to a household.
+ * Simulated behavior turns off for it. The device prints its identity at boot; an operator enters it here.
+ */
+export const register_node = spacetimedb.reducer({ householdId: t.u32(), device: t.identity() }, (ctx, { householdId, device }) => {
+  requireOperator(ctx, 'Registering a node');
   const h = ctx.db.household.id.find(householdId);
   if (!h || !h.hasSensor) throw new SenderError(`Unknown or unsensored household ${householdId}`);
+  const bound = [...ctx.db.nodeOwner.householdId.filter(householdId)].some((o) => o.identity.isEqual(device));
+  if (!bound) ctx.db.nodeOwner.insert({ id: 0n, householdId, identity: device });
   ctx.db.household.id.update({ ...h, simulated: false });
   const n = ctx.db.node.householdId.find(householdId)!;
   ctx.db.node.householdId.update({ ...n, online: true, lastSignalMicros: now(ctx), abrupt: false });
-  log(ctx, 'system', 'info', h.id, `Hardware node registered for ${h.name} (${h.unit}).`);
+  log(ctx, 'system', 'info', h.id, `Hardware node registered for ${h.name} (${h.unit}) by ${actor(ctx)}.`);
   recompute(ctx);
 });
 
+/** Dispatcher management. The list is private, so clients cannot see who the operators are. */
+export const add_operator = spacetimedb.reducer({ identity: t.identity() }, (ctx, { identity }) => {
+  requireOperator(ctx, 'Adding an operator');
+  if (ctx.db.operator.identity.find(identity) === null) ctx.db.operator.insert({ identity });
+  log(ctx, 'auth', 'info', 0, `Operator added by ${actor(ctx)}.`);
+});
+
+export const remove_operator = spacetimedb.reducer({ identity: t.identity() }, (ctx, { identity }) => {
+  requireOperator(ctx, 'Removing an operator');
+  if (ctx.db.operator.identity.find(identity) === null) throw new SenderError('That identity is not an operator.');
+  if ([...ctx.db.operator.iter()].length <= 1) throw new SenderError('Cannot remove the last operator.');
+  ctx.db.operator.identity.delete(identity);
+  log(ctx, 'auth', 'info', 0, `Operator removed by ${actor(ctx)}.`);
+});
+
 export const heartbeat = spacetimedb.reducer({ householdId: t.u32(), onBattery: t.bool() }, (ctx, { householdId, onBattery }) => {
+  requireHouseholdAccess(ctx, householdId, 'Heartbeat');
   const n = ctx.db.node.householdId.find(householdId);
   if (!n) throw new SenderError(`Unknown household ${householdId}`);
   const at = now(ctx);
@@ -580,6 +787,10 @@ export const heartbeat = spacetimedb.reducer({ householdId: t.u32(), onBattery: 
 export const report_event = spacetimedb.reducer(
   { householdId: t.u32(), kind: t.string(), value: t.f64(), durationS: t.f64() },
   (ctx, { householdId, kind, value, durationS }) => {
+    requireHouseholdAccess(ctx, householdId, 'Reporting a sensor event');
+    requireFinite('value', value);
+    requireFinite('durationS', durationS);
+    if (durationS < 0 || durationS > 600) throw new SenderError('durationS must be between 0 and 600.');
     reportEvent(ctx, householdId, kind, value, durationS);
     recompute(ctx);
   },
@@ -590,26 +801,36 @@ export const submit_checkin = spacetimedb.reducer(
   { householdId: t.u32(), answer: t.string(), source: t.string() },
   (ctx, { householdId, answer, source }) => {
     if (answer !== 'ok' && answer !== 'help') throw new SenderError('answer must be ok or help');
-    answerCheckin(ctx, householdId, answer, source || 'phone');
+    requireHouseholdAccess(ctx, householdId, 'Answering a check-in');
+    const claimed = source || 'phone';
+    if (!CHECKIN_SOURCES.includes(claimed)) throw new SenderError(`source must be one of: ${CHECKIN_SOURCES.join(', ')}.`);
+    // A dispatcher answering for someone is recorded as such, so the audit trail never claims the resident pressed it.
+    const onBehalf = !ownsHousehold(ctx, householdId);
+    answerCheckin(ctx, householdId, answer, onBehalf ? `dispatcher (${actor(ctx)})` : claimed);
     recompute(ctx);
   },
 );
 
-export const recompute_hpi = spacetimedb.reducer((ctx) => recompute(ctx));
+export const recompute_hpi = spacetimedb.reducer((ctx) => {
+  requireOperator(ctx, 'Recomputing priority');
+  recompute(ctx);
+});
 
 // ---------- Dispatcher reducers ----------
 
 export const override_priority = spacetimedb.reducer(
   { householdId: t.u32(), delta: t.f64(), reason: t.string() },
   (ctx, { householdId, delta, reason }) => {
-    if (!reason.trim()) throw new SenderError('An override needs a reason.');
+    requireOperator(ctx, 'A priority override');
+    requireFinite('delta', delta);
+    const why = requireText('An override reason', reason, true);
     if (delta < -30 || delta > 30) throw new SenderError('Override must be between -30 and +30.');
     const p = ctx.db.priority.householdId.find(householdId);
     const h = ctx.db.household.id.find(householdId);
     if (!p || !h) throw new SenderError(`Unknown household ${householdId}`);
     ctx.db.priority.householdId.update({ ...p, override: delta });
-    ctx.db.overrideLog.insert({ id: 0n, householdId, delta, reason: reason.trim(), by: ctx.sender.toHexString().slice(0, 12), atMicros: now(ctx) });
-    log(ctx, 'override', 'warn', h.id, `Dispatcher override ${delta > 0 ? '+' : ''}${delta} on ${h.name} (${h.unit}): ${reason.trim()}`);
+    ctx.db.overrideLog.insert({ id: 0n, householdId, delta, reason: why, by: actor(ctx), atMicros: now(ctx) });
+    log(ctx, 'override', 'warn', h.id, `Dispatcher override ${delta > 0 ? '+' : ''}${delta} on ${h.name} (${h.unit}) by ${actor(ctx)}: ${why}`);
     recompute(ctx);
   },
 );
@@ -617,17 +838,103 @@ export const override_priority = spacetimedb.reducer(
 export const set_final_state = spacetimedb.reducer(
   { householdId: t.u32(), state: t.string(), note: t.string() },
   (ctx, { householdId, state, note }) => {
+    requireOperator(ctx, 'Setting a final state');
     if (!Object.values(FINAL).includes(state as never)) throw new SenderError(`Bad state ${state}`);
     const h = ctx.db.household.id.find(householdId);
     if (!h) throw new SenderError(`Unknown household ${householdId}`);
-    setFinal(ctx, h, state, note.trim() || 'Set by dispatcher.');
+    setFinal(ctx, h, state, `${requireText('note', note, false) || 'Set by dispatcher.'} (by ${actor(ctx)})`);
     recompute(ctx);
+  },
+);
+
+// ---------- Photon agent reducers ----------
+
+/** A real person now answers for this household over text, so the simulator must not answer for them. */
+export const link_agent_household = spacetimedb.reducer({ householdId: t.u32() }, (ctx, { householdId }) => {
+  requireOperator(ctx, 'Linking a household');
+  const h = ctx.db.household.id.find(householdId);
+  if (!h) throw new SenderError(`Unknown household ${householdId}`);
+  if (h.simBehavior !== AGENT_LINKED) ctx.db.household.id.update({ ...h, simBehavior: AGENT_LINKED });
+});
+
+/** One thing someone told the agent about a household. The accounting status is derived, never set. */
+export const record_claim = spacetimedb.reducer(
+  { householdId: t.u32(), sourceKey: t.string(), relation: t.string(), firsthand: t.bool(), kind: t.string(), detail: t.string() },
+  (ctx, { householdId, sourceKey, relation, firsthand, kind, detail }) => {
+    requireOperator(ctx, 'Recording a claim');
+    if (!CLAIM_KINDS.includes(kind)) throw new SenderError(`Bad claim kind ${kind}`);
+    if (!RELATIONS.includes(relation)) throw new SenderError(`Bad relation ${relation}`);
+    const key = requireText('sourceKey', sourceKey, true);
+    const h = ctx.db.household.id.find(householdId);
+    if (!h) throw new SenderError(`Unknown household ${householdId}`);
+    ctx.db.personClaim.insert({ id: 0n, householdId, sourceKey: key, relation, firsthand, kind, detail: requireText('detail', detail, false), atMicros: now(ctx) });
+    const hasCheckin = ctx.db.checkin.householdId.find(householdId) !== null;
+
+    if (relation === 'self' && hasCheckin && (kind === 'safe' || kind === 'away')) answerCheckin(ctx, householdId, 'ok', 'text message');
+    else if (relation === 'self' && hasCheckin && kind === 'needs_help') answerCheckin(ctx, householdId, 'help', 'text message');
+    else if (relation === 'visit' && kind === 'safe') setFinal(ctx, h, FINAL.ok, 'A neighbor checked in person.');
+    else if (relation === 'visit' && kind === 'needs_help') setFinal(ctx, h, FINAL.help, 'A neighbor found them and they need help.');
+    else log(ctx, 'claim', kind === 'needs_help' ? 'critical' : 'info', h.id, `New ${relation} report about ${h.name} (${h.unit}): ${kind.replace('_', ' ')}.`);
+
+    recompute(ctx);
+    // Enough independent witnesses close the case the same way a dispatcher would.
+    const a = ctx.db.accounting.householdId.find(householdId);
+    const fresh = ctx.db.household.id.find(householdId)!;
+    if (a?.status === 'accounted' && fresh.finalState !== FINAL.ok && fresh.finalState !== FINAL.assisted) {
+      setFinal(ctx, fresh, FINAL.ok, a.note);
+      recompute(ctx);
+    }
+  },
+);
+
+export const propose_help_task = spacetimedb.reducer(
+  { householdId: t.u32(), helperLabel: t.string(), reason: t.string() },
+  (ctx, { householdId, helperLabel, reason }) => {
+    requireOperator(ctx, 'Proposing a help task');
+    const h = ctx.db.household.id.find(householdId);
+    if (!h) throw new SenderError(`Unknown household ${householdId}`);
+    const open = [...ctx.db.helpTask.householdId.filter(householdId)].some((x) => x.state !== 'done' && x.state !== 'cancelled');
+    if (open) return;
+    const at = now(ctx);
+    ctx.db.helpTask.insert({
+      id: 0n, householdId, state: 'proposed', helperLabel: requireText('helperLabel', helperLabel, false), reason: requireText('reason', reason, true),
+      approvedBy: '', createdAtMicros: at, updatedAtMicros: at,
+    });
+    log(ctx, 'help_task', 'warn', h.id, `Agent proposes asking a neighbor to check on ${h.name} (${h.unit}). Waiting for a dispatcher.`);
+  },
+);
+
+/** The human step: nobody is asked to go anywhere until a person approves it here. */
+export const approve_help_task = spacetimedb.reducer({ id: t.u64(), by: t.string() }, (ctx, { id, by }) => {
+  requireOperator(ctx, 'Approving a help task');
+  const task = ctx.db.helpTask.id.find(id);
+  if (!task) throw new SenderError(`Unknown help task ${id}`);
+  if (task.state !== 'proposed') return;
+  ctx.db.helpTask.id.update({ ...task, state: 'approved', approvedBy: requireText('by', by, true), updatedAtMicros: now(ctx) });
+  log(ctx, 'help_task', 'info', task.householdId, `Dispatcher approved a neighbor check.`);
+});
+
+export const update_help_task = spacetimedb.reducer(
+  { id: t.u64(), state: t.string(), helperLabel: t.string() },
+  (ctx, { id, state, helperLabel }) => {
+    requireOperator(ctx, 'Updating a help task');
+    if (!HELP_TASK_STATES.includes(state)) throw new SenderError(`Bad task state ${state}`);
+    const task = ctx.db.helpTask.id.find(id);
+    if (!task) throw new SenderError(`Unknown help task ${id}`);
+    if (task.state === 'proposed' && state !== 'cancelled') throw new SenderError('A proposed task needs a dispatcher first.');
+    const label = requireText('helperLabel', helperLabel, false) || task.helperLabel;
+    if (task.state === state && task.helperLabel === label) return;
+    ctx.db.helpTask.id.update({ ...task, state, helperLabel: label, updatedAtMicros: now(ctx) });
+    if (state === 'accepted') log(ctx, 'help_task', 'good', task.householdId, `A neighbor is going to check. ${label}`);
   },
 );
 
 // ---------- Demo-only simulation reducers (sim_*) ----------
 
 export const sim_quake = spacetimedb.reducer({ x: t.f64(), y: t.f64(), magnitude: t.f64() }, (ctx, { x, y, magnitude }) => {
+  requireOperator(ctx, 'Simulating an earthquake');
+  [x, y, magnitude].forEach((v) => requireFinite('x, y and magnitude', v));
+  if (magnitude <= 0 || magnitude > 3) throw new SenderError('magnitude must be in (0, 3].');
   log(ctx, 'sim', 'info', 0, `SIMULATION: earthquake triggered (strength ${magnitude.toFixed(1)}).`);
   for (const h of [...ctx.db.household.iter()]) {
     if (!h.hasSensor || !h.simulated) continue;
@@ -652,6 +959,7 @@ export const sim_quake = spacetimedb.reducer({ x: t.f64(), y: t.f64(), magnitude
 });
 
 export const sim_fire = spacetimedb.reducer({ householdId: t.u32() }, (ctx, { householdId }) => {
+  requireOperator(ctx, 'Simulating a fire');
   const h = ctx.db.household.id.find(householdId);
   if (!h) throw new SenderError(`Unknown household ${householdId}`);
   log(ctx, 'sim', 'info', h.id, `SIMULATION: fire started in ${h.unit}.`);
@@ -665,6 +973,8 @@ export const sim_fire = spacetimedb.reducer({ householdId: t.u32() }, (ctx, { ho
 });
 
 export const sim_power_loss = spacetimedb.reducer({ x: t.f64(), y: t.f64(), radius: t.f64() }, (ctx, { x, y, radius }) => {
+  requireOperator(ctx, 'Simulating a power loss');
+  [x, y, radius].forEach((v) => requireFinite('x, y and radius', v));
   let n = 0;
   for (const h of [...ctx.db.household.iter()]) {
     if (!h.hasSensor || !h.simulated || dist(h, { x, y }) > radius) continue;
@@ -676,6 +986,8 @@ export const sim_power_loss = spacetimedb.reducer({ x: t.f64(), y: t.f64(), radi
 });
 
 export const sim_comms_outage = spacetimedb.reducer({ x: t.f64(), y: t.f64(), radius: t.f64() }, (ctx, { x, y, radius }) => {
+  requireOperator(ctx, 'Simulating a communications outage');
+  [x, y, radius].forEach((v) => requireFinite('x, y and radius', v));
   const at = now(ctx);
   let n = 0;
   for (const h of ctx.db.household.iter()) {
@@ -689,6 +1001,8 @@ export const sim_comms_outage = spacetimedb.reducer({ x: t.f64(), y: t.f64(), ra
 });
 
 export const sim_fast_forward = spacetimedb.reducer({ minutes: t.f64() }, (ctx, { minutes }) => {
+  requireOperator(ctx, 'Fast-forwarding scenario time');
+  requireFinite('minutes', minutes);
   if (minutes <= 0 || minutes > 240) throw new SenderError('minutes must be in (0, 240]');
   // Step one minute at a time so the ladder and simulated residents play out in order.
   for (let i = 0; i < Math.ceil(minutes); i++) {
@@ -706,8 +1020,10 @@ export const sim_fast_forward = spacetimedb.reducer({ minutes: t.f64() }, (ctx, 
 });
 
 export const sim_reset = spacetimedb.reducer((ctx) => {
+  requireOperator(ctx, 'Resetting the simulation');
   clearAll(ctx);
   const c = ctx.db.clock.id.find(0);
   if (c) ctx.db.clock.id.update({ ...c, offsetMicros: 0n });
   seed(ctx);
+  log(ctx, 'sim', 'info', 0, `SIMULATION reset by ${actor(ctx)}. Override audit log kept.`);
 });
