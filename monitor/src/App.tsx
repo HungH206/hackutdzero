@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScenarioNow, useView } from './data/derive';
 import { useHeadcount } from './data/HeadcountProvider';
-import { AgentScreen } from './ui/agent/AgentScreen';
 import { Analytics } from './ui/Analytics';
 import { CommandDock, type DockHandle } from './ui/CommandDock';
 import { DemoPanel } from './ui/DemoPanel';
@@ -23,7 +22,7 @@ import { Houses } from './ui/houses/Houses';
 import { Overview } from './ui/overview/Overview';
 import { CommandView } from './ui/command/CommandView';
 
-const SCREENS: Screen[] = ['overview', 'graph', 'tree', 'houses', 'map', 'analytics', 'log', 'agent'];
+const SCREENS: Screen[] = ['overview', 'graph', 'tree', 'houses', 'map', 'analytics', 'log'];
 
 export function App() {
   const { snapshot, actions, connection } = useHeadcount();
@@ -227,12 +226,6 @@ export function App() {
       {(screen === 'analytics' || screen === 'log') && (
         <div className="page">
           {screen === 'analytics' ? <Analytics view={view} snapshot={snapshot} now={now} onSelect={select} /> : <EventLog rows={snapshot.timeline} view={view} onSelect={select} />}
-        </div>
-      )}
-
-      {screen === 'agent' && (
-        <div className="page">
-          <AgentScreen />
         </div>
       )}
 

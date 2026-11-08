@@ -30,7 +30,6 @@ function makeActions(call: Call): Actions {
     simCommsOutage: (x, y, radius) => call('sim_comms_outage', { x, y, radius }),
     simFastForward: (minutes) => call('sim_fast_forward', { minutes }),
     simReset: () => call('sim_reset', {}),
-    approveHelpTask: (id, by) => call('approve_help_task', { id: BigInt(id), by }),
   };
 }
 
@@ -96,9 +95,6 @@ const TABLE_KEYS: [keyof Snapshot, string][] = [
   ['priorities', 'priority'],
   ['overrides', 'overrideLog'],
   ['timeline', 'timeline'],
-  ['accounts', 'accounting'],
-  ['helpTasks', 'helpTask'],
-  ['summaries', 'headcountSummary'],
 ];
 
 const camel = (s: string) => s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
