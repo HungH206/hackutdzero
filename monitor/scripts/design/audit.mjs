@@ -85,7 +85,22 @@ function collectStyles(opts) {
     const ok = r.width > 0 && r.height > 0 && !(r.width <= 1 && r.height <= 1) && r.right > 0 && r.bottom > 0 && r.left < SW && r.top < SH;
     return ok ? r : null;
   };
-  const fontOf = (cs, colorProp) => ({ ff: cs.fontFamily, fs: cs.fontSize, fw: cs.fontWeight, c: colorProp === 'fill' ? cs.fill : cs.color });
+  // Text drawn under a transform (SVG viewBox scaling, 3D labels) renders at another size than its CSS font-size.
+  const scaleOf = (el, r) => {
+    let s = 1;
+    if (el instanceof SVGGraphicsElement) {
+      const m = el.getScreenCTM();
+      if (m) s = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c));
+    } else if (el.offsetWidth > 0 && r) s = r.width / el.offsetWidth;
+    return Math.abs(s - 1) > 0.02 && Number.isFinite(s) ? Math.round(s * 1000) / 1000 : undefined;
+  };
+  const fontOf = (cs, colorProp, el, r) => ({
+    ff: cs.fontFamily,
+    fs: cs.fontSize,
+    fw: cs.fontWeight,
+    c: colorProp === 'fill' ? cs.fill : cs.color,
+    scale: el ? scaleOf(el, r) : undefined,
+  });
   const boxProps = (cs, rec, replaced) => {
     const bgA = alphaOf(cs.backgroundColor);
     if (bgA > 0) rec.bg = cs.backgroundColor;
@@ -127,10 +142,11 @@ function collectStyles(opts) {
         for (const h of ch.children) visit(h);
         continue;
       }
-      if (SVG_TEXT.has(ch.localName) && ownText(ch) && cs.visibility === 'visible' && boxOf(ch)) {
+      const tr = SVG_TEXT.has(ch.localName) && ownText(ch) && cs.visibility === 'visible' ? boxOf(ch) : null;
+      if (tr) {
         stats.visible++;
         const fill = cs.fill && /^(rgb|#|color|oklch|oklab|lab|lch|hsl)/.test(cs.fill) ? 'fill' : 'color';
-        out.push({ p: pathOf(ch), f: fontOf(cs, fill) });
+        out.push({ p: pathOf(ch), f: fontOf(cs, fill, ch, tr) });
       }
       visitSvg(ch);
     }
@@ -154,7 +170,7 @@ function collectStyles(opts) {
       stats.visible++;
       const rec = { p: pathOf(el) };
       const formControl = (tag === 'input' && !NO_HEIGHT_INPUT.test(el.type)) || tag === 'textarea' || tag === 'select';
-      if (!isSvgRoot && (opts.textScope === 'all' || ownText(el) || formControl)) rec.f = fontOf(cs, 'color');
+      if (!isSvgRoot && (opts.textScope === 'all' || ownText(el) || formControl)) rec.f = fontOf(cs, 'color', el, r);
       boxProps(cs, rec, /^(img|video|iframe|picture)$/.test(tag));
       if (matches(el, CONTROL)) {
         const inlineLink = tag === 'a' && cs.display === 'inline';
@@ -252,6 +268,8 @@ function checksFor(rec, A) {
     out.push({ prop: 'font-family', value: fam, allowed: A.fonts.includes(fam.toLowerCase()) });
     const fs = parseFloat(rec.f.fs);
     out.push({ prop: 'font-size', value: `${Math.round(fs * 100) / 100}px`, allowed: nearIn(fs, A.fontSizes) });
+    // Informational: what a scaled SVG or 3D label actually draws at, at this viewport size.
+    if (rec.f.scale) out.push({ prop: 'font-size-rendered', value: `${Math.round(fs * rec.f.scale * 10) / 10}px`, allowed: true, unchecked: true });
     const fw = Number(rec.f.fw);
     out.push({ prop: 'font-weight', value: String(fw), allowed: A.fontWeights.includes(fw) });
     const c = parseColor(rec.f.c);
@@ -290,12 +308,13 @@ function landmarkStyle(name, row) {
   const corners = row.radius.map(normCorner);
   const pad = row.padding.map((p) => p.replace(/\.\d+px$/, (m) => `${Math.round(parseFloat(m) * 10) / 10}px`));
   const sh = parseShadow(row.shadow);
+  const bg = parseColor(row.bg);
   const s = {
     'font-family': firstFamily(row.ff),
     'font-size': row.fs,
     'font-weight': row.fw,
     color: normColor(row.color),
-    'background-color': normColor(row.bg),
+    'background-color': bg && bg.a === 0 ? 'transparent' : normColor(row.bg),
     border: borders.every((b) => b === borders[0]) ? borders[0] : borders.join(' / '),
     'border-radius': corners.every((c) => c === corners[0]) ? corners[0] : corners.join(' / '),
     'box-shadow': sh ? fmtShadow(sh) : row.shadow,
@@ -456,6 +475,19 @@ async function main() {
       Object.fromEntries([...byProp.entries()].map(([prop, vals]) => [prop, [...vals.values()].sort((a, b) => b.count - a.count)])),
     ]),
   );
+  // The same off-list value across screens: the biggest wins first.
+  const top = new Map();
+  for (const [s, byProp] of distinct)
+    for (const [prop, vals] of byProp)
+      for (const v of vals.values()) {
+        if (v.allowed) continue;
+        const k = `${prop}\u0000${v.value}`;
+        const t = top.get(k) ?? { prop, value: v.value, screens: [], elements: 0 };
+        t.screens.push(s);
+        t.elements += v.count;
+        top.set(k, t);
+      }
+  const topOffList = [...top.values()].sort((a, b) => b.screens.length - a.screens.length || b.elements - a.elements);
   const summary = Object.fromEntries(
     screens.map((s) => {
       const byProp = distinct.get(s) ?? new Map();
@@ -490,6 +522,7 @@ async function main() {
       landmarksFound: Object.fromEntries(Object.entries(landmarks).map(([k, v]) => [k, v.rows.length])),
     })),
     summary,
+    topOffList,
     violations: violationList,
     distinct: distinctOut,
     comparison,
@@ -538,6 +571,17 @@ function renderMarkdown(r, { screens, maxRows }) {
   }
   L.push('', 'Per-property columns count distinct off-list values on that screen.', '');
 
+  L.push('## Most common off-list values', '');
+  if (!r.topOffList.length) L.push('None: every checked value is on the allow-list.', '');
+  else {
+    L.push('The same value on the most screens first. Elements is the sum over screens of elements per page.', '');
+    L.push('| Property | Value | Screens | Elements |');
+    L.push('|---|---|---|---:|');
+    for (const t of r.topOffList.slice(0, 40)) L.push(`| ${t.prop} | ${code(md(t.value.length > 90 ? t.value.slice(0, 90) + '…' : t.value))} | ${t.screens.length === screens.length ? 'all' : t.screens.join(', ')} | ${t.elements} |`);
+    if (r.topOffList.length > 40) L.push('', `…${r.topOffList.length - 40} more in audit.json (\`topOffList\`).`);
+    L.push('');
+  }
+
   // Cross-screen comparison
   L.push('## Cross-screen comparison (landmarks)', '');
   const sizes = Object.keys(r.comparison);
@@ -575,7 +619,7 @@ function renderMarkdown(r, { screens, maxRows }) {
     L.push(`### ${s}`, '');
     L.push('| Property | Allowed values used | Off-list values |');
     L.push('|---|---|---|');
-    for (const prop of [...props, 'backdrop-filter', 'background-image']) {
+    for (const prop of [...props, 'font-size-rendered', 'backdrop-filter', 'background-image']) {
       const vals = d[prop];
       if (!vals) continue;
       const short = (s) => (s.length > 90 ? s.slice(0, 90) + '…' : s);
@@ -583,7 +627,7 @@ function renderMarkdown(r, { screens, maxRows }) {
       const ok = vals.filter((v) => v.allowed);
       const off = vals.filter((v) => !v.allowed);
       const cap = (arr) => md(arr.slice(0, 12).map(fmt).join(', ') + (arr.length > 12 ? `, +${arr.length - 12} more` : ''));
-      L.push(`| ${prop}${vals[0]?.unchecked ? ' (not in allow-list)' : ''} | ${cap(ok) || '—'} | ${cap(off) || '—'} |`);
+      L.push(`| ${prop}${vals[0]?.unchecked ? ' (info, not checked)' : ''} | ${cap(ok) || '—'} | ${cap(off) || '—'} |`);
     }
     const fonts = [...new Set(r.pages.filter((p) => p.view === s).flatMap((p) => p.fonts))];
     L.push('', `Web fonts loaded: ${fonts.length ? fonts.join(', ') : 'none'}.`, '');
@@ -610,7 +654,7 @@ function renderMarkdown(r, { screens, maxRows }) {
 main().then(
   (code) => process.exit(code),
   (e) => {
-    console.error(`audit: ${e.stack ?? e.message}`);
+    console.error(`audit: ${process.argv.includes('--verbose') ? e.stack : e.message}`);
     process.exit(2);
   },
 );

@@ -40,7 +40,7 @@ async function main() {
         size: ctx.size.label,
         url: ctx.url,
         file: ctx.file && fs.existsSync(ctx.file) ? path.basename(ctx.file) : null,
-        ok: !ctx.error && d.consoleErrors.length === 0 && d.exceptions.length === 0,
+        ok: !ctx.error && !ctx.stateMismatch && d.consoleErrors.length === 0 && d.exceptions.length === 0,
         error: ctx.error ?? null,
         ms: ctx.ms,
         readyMs: ctx.ready?.readyMs ?? null,

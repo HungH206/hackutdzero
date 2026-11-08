@@ -588,6 +588,15 @@ export async function runMatrix(opts, { capture, done }, { log = console.log } =
             ctx.ready = await page.waitReady({ view, ...opts });
             ctx.facts = await page.facts().catch((e) => ({ error: e.message }));
             await capture(page, ctx);
+            // Guard against another client (or a second tool run) changing this server's simulation mid-run.
+            if (state !== 'current') {
+              const s = await hcState(opts.base).catch(() => null);
+              const active = s ? (s.disasters ?? []).some((d) => d.active) : null;
+              if (active !== null && active !== (state === 'incident')) {
+                ctx.stateMismatch = true;
+                ctx.ready.notes.push(`simulation is no longer "${state}" (disaster ${active ? 'active' : 'none'}): did another client change it?`);
+              }
+            }
           } catch (e) {
             ctx.error = e.message;
           } finally {

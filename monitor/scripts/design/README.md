@@ -52,6 +52,8 @@ It prints one line per shot (status, time, error, warning, exception and failed-
 
 Exit codes: `0` if every page was clean, `1` if any page logged a console error or threw an exception (or failed to load), `2` if the run itself failed (no server, no Chrome). The automatic `/favicon.ico` 404 is ignored because the app ships no favicon.
 
+After each page, the tool also re-reads `/__headcount/state`. If the simulation is no longer in the expected state (for example someone pressed Reset, or a second tool run reset the same server), that page is marked not ok, with a note.
+
 ## 3. Style audit
 
 ```bash
@@ -71,7 +73,7 @@ It takes the same options as `shoot.mjs`, plus these:
 
 What it checks, for every visible element. Visible means a non-zero box, not `display:none`, not `visibility:hidden` and not inside `opacity:0`. It skips `<canvas>`, everything matched by the allow-list's `ignore` selectors (with their subtrees), and SVG internals except text.
 
-- `font-family` (first family, quotes stripped, compared case-insensitively), `font-size` (within ±0.5 px, exclusive, so 10.5 px does not pass as 11 px), `font-weight` (exact), and text `color` (`fill` for SVG text). These are checked on elements with their own text, form fields, and SVG text.
+- `font-family` (first family, quotes stripped, compared case-insensitively), `font-size` (within ±0.5 px, exclusive, so 10.5 px does not pass as 11 px), `font-weight` (exact), and text `color` (`fill` for SVG text). These are checked on elements with their own text, form fields, and SVG text. The check uses the CSS font-size. Text drawn under a transform, such as an SVG scaled by its viewBox or a label in the 3D scene, also gets an informational `font-size-rendered`: the size it actually draws at, at that viewport.
 - `background-color` when it isn't transparent, and `border-*-color` on sides with a border width above 0.
 - `border-radius` per corner, where the radius can be seen (filled, bordered, shadowed, blurred, clipping or replaced boxes).
 - `box-shadow`. Both sides are parsed into canonical layers (`x y blur spread #rrggbb/alpha`, plus `inset`), so Chrome's `rgba(0, 0, 0, 0.06) 0px 1px 2px 0px` matches the allow-list's `0 1px 2px rgba(0,0,0,.06)`.
@@ -84,9 +86,10 @@ Colors are normalized to `#rrggbb`, or `#rrggbb/alpha` when not opaque. `rgb()`,
 `audit.md` sections:
 
 1. **Summary**: per screen, the number of visible elements, off-list entries, and distinct off-list values per property.
-2. **Cross-screen comparison**: for each landmark, a table of its key computed styles per screen (font, color, background, border, radius, shadow, backdrop filter, padding, and height for bars, rows, chips, buttons, pins, tabs and segmented controls). Properties whose value sets differ between screens are marked `≠`, and the landmark is listed as differing. Full tables are shown for the first size; other sizes list only the differences.
-3. **Distinct values per screen**: allowed and off-list values for each property, with counts.
-4. **Violations by screen**: state, short selector path (`tag#id.class` chain, up to 4 levels, with `[data-ui]`), property, value and count.
+2. **Most common off-list values**: the same value across screens, the ones on the most screens first. Start fixing here.
+3. **Cross-screen comparison**: for each landmark, a table of its key computed styles per screen (font, color, background, border, radius, shadow, backdrop filter, padding, and height for bars, rows, chips, buttons, pins, tabs and segmented controls). Properties whose value sets differ between screens are marked `≠`, and the landmark is listed as differing. Full tables are shown for the first size; other sizes list only the differences.
+4. **Distinct values per screen**: allowed and off-list values for each property, with counts.
+5. **Violations by screen**: state, short selector path (`tag#id.class` chain, up to 4 levels, with `[data-ui]`), property, value and count.
 
 Counts are elements per page, taking the maximum over states and sizes. `audit.json` has everything: pages, per-state setup, violations, distinct values, comparison tables, and the web fonts that actually loaded.
 
