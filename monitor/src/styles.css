@@ -204,15 +204,15 @@ h1, h2, p { margin: 0; }
 .map-canvas { position: absolute; inset: 0; z-index: var(--z-map); background: var(--bg); }
 .map-canvas > svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 .map-canvas > svg:active { cursor: grabbing; }
-.map-label { font-family: var(--font); font-size: 9px; letter-spacing: 0.12em; fill: #66666c; pointer-events: none; user-select: none; }
-.map-label.water { fill: #3f6577; font-style: italic; letter-spacing: 0.2em; }
-.map-label.park { fill: #3d6a4c; }
-.map-label.road { fill: #4a4a50; font-size: 8px; }
+.map-label { font-family: var(--font-map); font-size: 11px; letter-spacing: 0.04em; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, 0.7); stroke-width: 2.5px; stroke-linejoin: round; pointer-events: none; user-select: none; }
+.map-label.water { fill: #fff; font-style: italic; letter-spacing: 0.2em; }
+.map-label.park { fill: #fff; font-style: italic; }
+.map-label.road { fill: #fff; font-size: 10px; }
 .map-label.bldg-name { fill: var(--label-2); font-weight: 600; font-size: 9px; }
-.map-label .bldg-meta, .bldg-meta { fill: var(--label-3); font-weight: 400; }
+.map-label .bldg-meta, .bldg-meta { fill: #fff; font-weight: 400; }
 .map-label.station { fill: var(--blue); font-weight: 600; }
 .map-label.epi { fill: var(--critical); font-weight: 700; }
-.bldg { fill: #f7f6f3; stroke: var(--separator); stroke-width: 1; transition: fill 0.4s, stroke 0.4s; }
+.bldg { fill: #8c8984; fill-opacity: 0.92; stroke: #9a968f; stroke-width: 1; transition: fill 0.4s, stroke 0.4s; }
 .bldg.fire { fill: var(--waiting-tint); stroke: var(--waiting); }
 @keyframes fireglow { 50% { stroke-opacity: 0.35; } }
 .heat { mix-blend-mode: screen; pointer-events: none; transition: r 0.6s; }
@@ -237,8 +237,8 @@ h1, h2, p { margin: 0; }
 .mk-flame { fill: none; stroke: #ff8a4c; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px #ff6a2b); }
 .pwr-chip { fill: #241d0b; stroke: var(--guarded); stroke-width: 0.8; }
 .pwr-txt { font-family: var(--mono); font-size: 8px; font-weight: 500; fill: var(--guarded); text-anchor: middle; }
-.mk-tag rect { fill: rgba(18, 18, 20, 0.92); stroke: var(--line-2); }
-.mk-tag text { font-family: var(--font); font-size: 9.5px; fill: var(--text); }
+.mk-tag rect { fill: rgba(255, 255, 255, 0.9); stroke: rgba(255, 255, 255, 0.6); }
+.mk-tag text { font-family: var(--font); font-size: 10px; font-weight: 500; fill: var(--label); }
 .mk-tag-rank { fill: var(--accent); font-weight: 700; }
 
 .map-tools {

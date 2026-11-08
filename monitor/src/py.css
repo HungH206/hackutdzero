@@ -296,9 +296,9 @@
 
 /* Map screen in the same teal night palette. */
 .py-app .glass { background: var(--surface-1); border-color: var(--separator); }
-.py-app .bldg { fill: #f7f6f3; stroke: var(--separator); }
-.py-app .map-label { fill: var(--label-2); }
-.py-app .map-label.bldg-name { fill: var(--label-2); font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
+.py-app .bldg { fill: #8c8984; fill-opacity: 0.92; stroke: #9a968f; }
+.py-app .map-label { fill: #fff; }
+.py-app .map-label.bldg-name { fill: #fff; font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
 .py-app .map-canvas { background: var(--surface-1); }
 .py-app .qp-row, .py-app .gauge-card, .py-app .ladder-track, .py-app .factor, .py-app .sensor, .py-app .override { background: var(--surface-2); }
 .py-app .qp-row.sel { border-color: var(--label); }
