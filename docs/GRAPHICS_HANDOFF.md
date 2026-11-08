@@ -2,7 +2,7 @@
 
 This is for the next agent (or person) taking over the **visual layer**: a full revamp of the graphics, layout and styling of every dashboard. The data layer, scoring and backend are finished enough for the demo. Do not change them. Change how things look.
 
-Read `AGENTS.md` first (hard rules), then this file. The branch is `monitor-dashboard`.
+Read `AGENTS.md` first (hard rules), then this file. The full design brief is [`prompts/design/apple-grade-design-system.md`](../prompts/design/apple-grade-design-system.md). The branch is `monitor-dashboard`.
 
 Deadline: final submission **Sun Nov 8, 12 PM CT**, with judging 1-4 PM. Keep every screen working at every commit. If a redesign isn't done by about 10 AM, ship what works.
 
@@ -132,6 +132,8 @@ The user keeps these in the repo root. They are untracked on purpose, so **do no
 | `DASHBOARD EXAMPLEE.webp` (terrain map + frosted glass card) | **Houses** screen. Tilt-shift terrain, white roads, dashed routes, frosted cards with thin oversized numerals. |
 | `DASHBOARD EXMPLEEE.mp4` (Haulix logistics app) | **Overview** (the "regular" dashboard). Charcoal, icon rail, stat pills, lime primary button, dashed cargo cells, package list. |
 | `DASHBOARD EXAMPLE.webp` (staking finance dashboard) | **CBRE** ("super finance based"). Near-black with lavender, asset cards with sparklines, promo card, giant numbers, slider, stat tiles. |
+| `executive-dash2.png.webp` (executive KPI overview) | **CBRE executive layer**: KPI comparison tiles, treemap, drag-to-zoom combo chart. |
+| `ai-dashboard-design.jpg` (analytics workspace + assistant panel) | **Analytics**: floating cards over a choropleth, bubble matrix, radar, legend with range sliders, assistant panel pattern for the command dock. |
 
 The user may also supply PNG artwork (for example orbs). Prefer their assets over generated ones when given.
 
