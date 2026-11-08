@@ -1,0 +1,184 @@
+import { useEffect, useRef, useState } from 'react';
+import type { PiEvent, PiKind, PiLevel, PiSensors, PiState } from '../../data/pi';
+import { Icon, type IconName } from '../Icon';
+
+type Feed = Extract<PiSensors, { available: true }>;
+
+const ROWS: { kind: PiKind; label: string; pin: number; icon: IconName }[] = [
+  { kind: 'flame', label: 'Flame', pin: 22, icon: 'flame' },
+  { kind: 'heat', label: 'Heat', pin: 27, icon: 'thermo' },
+  { kind: 'shock', label: 'Shock', pin: 24, icon: 'quake' },
+  { kind: 'sound', label: 'Loud noise', pin: 17, icon: 'radio' },
+  { kind: 'motion', label: 'Motion', pin: 23, icon: 'user' },
+];
+
+const LEVEL_STATUS: Record<PiLevel, string> = { SAFE: 'ok', WATCH: 'waiting', WARNING: 'waiting', EMERGENCY: 'critical' };
+const STALE_MS = 2500;
+const FLASH_MS = 1100;
+
+function secs(s: number | null | undefined): string {
+  if (s == null) return 'never';
+  if (s < 1) return 'just now';
+  if (s < 60) return `${Math.round(s)}s ago`;
+  return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s ago`;
+}
+
+const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour12: false });
+
+export function LiveSensors({ pi }: { pi: Feed }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const age = pi.updatedAt ? now - pi.updatedAt : Infinity;
+  const stale = pi.status === 'live' && age > STALE_MS;
+  const mode: 'live' | 'warming' | 'stale' | 'error' | 'connecting' =
+    pi.status === 'error' ? 'error' : stale ? 'stale' : pi.status;
+  const s = pi.state;
+
+  // Row flash when a new trigger event arrives.
+  const [flash, setFlash] = useState<Record<string, number>>({});
+  const seen = useRef<number | null>(null);
+  const newest = pi.events[0];
+  useEffect(() => {
+    if (!newest) return;
+    if (seen.current === null) {
+      seen.current = newest.t; // do not flash for history on first load
+      return;
+    }
+    if (newest.t > seen.current) {
+      seen.current = newest.t;
+      if (newest.kind !== 'online') setFlash((f) => ({ ...f, [newest.kind]: Date.now() }));
+    }
+  }, [newest]);
+
+  const headline =
+    mode === 'live'
+      ? `updated ${age < 1000 ? `${Math.max(0, age / 1000).toFixed(1)}s` : `${(age / 1000).toFixed(1)}s`} ago`
+      : mode === 'stale'
+        ? `no data for ${(age / 1000).toFixed(0)}s`
+        : mode === 'warming'
+          ? s?.warmupLeft != null
+            ? `calibrating, ${Math.ceil(s.warmupLeft)}s left`
+            : 'calibrating sensors'
+          : mode === 'error'
+            ? 'feed error'
+            : 'connecting over SSH';
+
+  return (
+    <section className={`py-live is-${mode}`} aria-label="Live sensor feed from the Raspberry Pi" data-ui="panel">
+      <header className="py-live-h">
+        <span className="py-live-kicker">
+          <i className="py-live-dot" aria-hidden="true" />
+          Live from Pi
+        </span>
+        <span className="py-live-host">{pi.host}</span>
+      </header>
+      <div className="py-live-sub">
+        <span>{headline}</span>
+        {s && !s.warming && mode !== 'error' && (
+          <span className="py-live-node" data-status={LEVEL_STATUS[s.level]}>
+            <b>{s.level}</b>
+            <span>node risk {s.risk.toFixed(0)}</span>
+          </span>
+        )}
+      </div>
+
+      {mode === 'error' && (
+        <p className="py-live-err" role="alert">
+          {pi.message || 'The Pi feed reported an error.'}
+        </p>
+      )}
+
+      {s && mode !== 'error' && <Rows s={s} flash={flash} now={now} dim={mode === 'stale'} />}
+
+      {s && !s.warming && mode !== 'error' && (
+        <div className="py-live-person" data-on={s.occupied ? 'yes' : 'no'}>
+          <Icon name="user" size={16} />
+          <span>
+            <b>{s.occupied ? 'Person inside' : 'No one detected'}</b>
+            <small>
+              {s.lastMotionAgo == null ? 'no motion yet' : `last motion ${secs(s.lastMotionAgo)}`} · {s.motionCount} motion event
+              {s.motionCount === 1 ? '' : 's'}
+            </small>
+          </span>
+        </div>
+      )}
+
+      <div className="py-live-feed">
+        <span className="py-live-feed-h">Node events</span>
+        {pi.events.length === 0 ? (
+          <p className="py-live-empty">Nothing yet. Clap, wave, or hold a flame near the sensors.</p>
+        ) : (
+          <ul>
+            {pi.events.slice(0, 6).map((e) => (
+              <Event key={`${e.t}-${e.kind}`} e={e} />
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Rows({ s, flash, now, dim }: { s: PiState; flash: Record<string, number>; now: number; dim: boolean }) {
+  return (
+    <div className={`py-live-rows${dim ? ' dim' : ''}`} role="table" aria-label="Sensors">
+      {ROWS.map((r) => {
+        const isMotion = r.kind === 'motion';
+        const pin = s.pins[r.kind];
+        const tripped = isMotion ? pin === 1 : pin !== s.idle[r.kind as Exclude<PiKind, 'motion'>];
+        const act = isMotion ? (s.occupied ? 1 : 0) : s.activity[r.kind as Exclude<PiKind, 'motion'>];
+        const ago = isMotion ? s.lastMotionAgo : s.lastSeenAgo[r.kind as Exclude<PiKind, 'motion'>];
+        const edges = isMotion ? s.motionCount : s.edges[r.kind as Exclude<PiKind, 'motion'>];
+        const flashing = flash[r.kind] != null && now - flash[r.kind]! < FLASH_MS;
+        return (
+          <div key={r.kind} className={`py-live-row${tripped ? ' tripped' : ''}${flashing ? ' flash' : ''}`} role="row">
+            <span className="py-live-ico">
+              <Icon name={r.icon} size={18} />
+            </span>
+            <span className="py-live-name">
+              {r.label}
+              <small>GPIO {r.pin}</small>
+            </span>
+            <span className="py-live-bar" aria-hidden="true">
+              <i style={{ width: `${Math.round(Math.min(1, Math.max(0, act)) * 100)}%` }} />
+            </span>
+            <span className="py-live-pin" title={`pin reads ${pin}`}>
+              <b>{pin}</b>
+              <small>{tripped ? 'tripped' : 'idle'}</small>
+            </span>
+            <span className="py-live-meta">
+              {secs(ago)}
+              <small>
+                {edges} {isMotion ? 'events' : 'edges'}
+              </small>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Event({ e }: { e: PiEvent }) {
+  const f = e.forwarded;
+  return (
+    <li>
+      <time>{clock(e.t)}</time>
+      <span className="py-live-ev">{e.label}</span>
+      {f && f.ok && (
+        <span className="py-live-sent" title={`reducer: ${f.reducer}`}>
+          <Icon name="check" size={12} /> sent to priority engine
+        </span>
+      )}
+      {f && !f.ok && (
+        <span className="py-live-fail" title={f.reducer}>
+          <Icon name="warn" size={12} /> {f.error || 'not sent'}
+        </span>
+      )}
+    </li>
+  );
+}

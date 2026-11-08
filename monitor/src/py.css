@@ -353,3 +353,70 @@
 /* Units: the shared top bar already carries search, bell and clock. */
 .py-app.screen-overview .ov-top-r { display: none; }
 .py-app .demo-btn { white-space: nowrap; }
+
+/* ---------- live sensor feed (Raspberry Pi node) ---------- */
+.py-live { border-radius: var(--r-card); background: var(--surface-2); padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 10px; font-variant-numeric: tabular-nums; }
+.py-live-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.py-live-kicker { display: inline-flex; align-items: center; gap: 8px; font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.py-live-host { font: 500 0.75rem/1 var(--font-mono); color: var(--label-3); }
+.py-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--unknown); flex: none; }
+.py-live.is-live .py-live-dot { background: var(--ok); animation: py-live-blink 2s ease-in-out infinite; }
+.py-live.is-warming .py-live-dot, .py-live.is-connecting .py-live-dot { background: var(--waiting); }
+.py-live.is-stale .py-live-dot, .py-live.is-error .py-live-dot { background: var(--critical); }
+@keyframes py-live-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+.py-live-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: var(--t-footnote); color: var(--label-2); min-height: var(--h-sm); }
+.py-live.is-stale .py-live-sub > span:first-child, .py-live.is-error .py-live-sub > span:first-child { color: var(--critical-ink); font-weight: 600; }
+.py-live-node { display: inline-flex; align-items: center; gap: 8px; height: var(--h-sm); padding: 0 10px; border-radius: var(--r-pill); background: var(--status-tint); color: var(--status-ink); font: 500 0.8125rem/1 var(--font-text); }
+.py-live-node b { font-weight: 600; letter-spacing: 0.02em; }
+.py-live-node span { opacity: 0.85; }
+.py-live-node[data-status='ok'] { --status-tint: var(--ok-tint); --status-ink: var(--ok-ink); }
+.py-live-node[data-status='waiting'] { --status-tint: var(--waiting-tint); --status-ink: var(--waiting-ink); }
+.py-live-node[data-status='critical'] { --status-tint: var(--critical-tint); --status-ink: var(--critical-ink); }
+.py-live-err { padding: 10px 12px; border-radius: var(--r-card); background: var(--critical-tint); border-left: 4px solid var(--critical); font: var(--t-footnote); color: var(--critical-ink); line-height: 1.45; word-break: break-word; }
+
+.py-live-rows { display: flex; flex-direction: column; background: var(--surface-1); border-radius: var(--r-card); overflow: hidden; transition: opacity var(--dur-panel) var(--ease); }
+.py-live-rows.dim { opacity: 0.5; }
+.py-live-row { display: grid; grid-template-columns: 20px 86px minmax(40px, 1fr) 44px 76px; align-items: center; column-gap: 10px; padding: 10px 12px; position: relative; }
+.py-live-row + .py-live-row { border-top: 1px solid var(--separator); }
+.py-live-ico { color: var(--label-3); display: inline-flex; }
+.py-live-row.tripped .py-live-ico { color: var(--waiting); }
+.py-live-name { font: 600 0.875rem/1.2 var(--font-text); color: var(--label); display: flex; flex-direction: column; gap: 2px; }
+.py-live-name small, .py-live-pin small, .py-live-meta small { font: var(--t-caption); color: var(--label-3); letter-spacing: 0; }
+.py-live-bar { height: 8px; border-radius: var(--r-bar); background: var(--surface-3); overflow: hidden; }
+.py-live-bar i { display: block; height: 100%; background: var(--label-3); border-radius: var(--r-bar); transition: width 220ms linear, background-color var(--dur-hover); }
+.py-live-row.tripped .py-live-bar i { background: var(--waiting); }
+.py-live-pin { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.py-live-pin b { font: 600 1.1875rem/1 var(--font-mono); color: var(--label); }
+.py-live-row.tripped .py-live-pin b { color: var(--waiting-ink); }
+.py-live-meta { font: 500 0.8125rem/1.2 var(--font-text); color: var(--label-2); display: flex; flex-direction: column; gap: 2px; text-align: right; white-space: nowrap; }
+.py-live-row.flash { animation: py-live-flash 1.1s var(--ease) 1; }
+@keyframes py-live-flash { 0% { background: var(--waiting-tint); } 100% { background: transparent; } }
+.py-live-row.flash::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--waiting); animation: py-live-edge 1.1s var(--ease) 1 forwards; }
+@keyframes py-live-edge { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+.py-live-person { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-card); background: var(--surface-1); color: var(--label-2); }
+.py-live-person > span { display: flex; flex-direction: column; gap: 2px; }
+.py-live-person b { font: 600 0.9375rem/1.2 var(--font-text); color: var(--label); }
+.py-live-person small { font: var(--t-footnote); color: var(--label-3); }
+.py-live-person[data-on='yes'] svg { color: var(--ok); }
+.py-live-person[data-on='no'] svg { color: var(--unknown); }
+
+.py-live-feed { display: flex; flex-direction: column; gap: 6px; }
+.py-live-feed-h { font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.py-live-feed ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; background: var(--surface-1); border-radius: var(--r-card); overflow: hidden; }
+.py-live-feed li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 12px; font: var(--t-footnote); color: var(--label); }
+.py-live-feed li + li { border-top: 1px solid var(--separator); }
+.py-live-feed time { font: 500 0.75rem/1 var(--font-mono); color: var(--label-3); }
+.py-live-ev { font-weight: 600; }
+.py-live-sent, .py-live-fail { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font: var(--t-caption); letter-spacing: 0; }
+.py-live-sent { color: var(--ok-ink); }
+.py-live-sent svg { color: var(--ok); }
+.py-live-fail { color: var(--critical-ink); }
+.py-live-fail svg { color: var(--critical); }
+.py-live-empty { padding: 10px 12px; border-radius: var(--r-card); background: var(--surface-1); font: var(--t-footnote); color: var(--label-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .py-live-dot, .py-live-row.flash, .py-live-row.flash::before { animation: none !important; }
+  .py-live-bar i { transition: none; }
+}

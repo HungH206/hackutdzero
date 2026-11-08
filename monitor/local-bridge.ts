@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
+import { reducerHook } from './pi-bridge';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +14,8 @@ export function headcountLocalBridge(): Plugin {
       const file = path.resolve(here, '../spacetimedb/local/bridge.ts');
       let bridge: Promise<{ call(n: string, a: object): void; snapshot(): unknown }> | undefined;
       const get = () => (bridge ??= server.ssrLoadModule(file).then((m) => m.createLocalBridge()));
+      // Let the Pi bridge push sensor events into this in-process module.
+      reducerHook.call = async (reducer, args) => (await get()).call(reducer, args);
 
       server.middlewares.use('/__headcount/state', async (_req, res) => {
         try {

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { agoText, CHECKIN_LABEL, FINAL_LABEL, STEP_LABEL, type View } from '../../data/derive';
 import type { Actions } from '../../data/types';
+import { usePiSensors } from '../../data/pi';
 import { Icon } from '../Icon';
+import { LiveSensors } from './LiveSensors';
 
 interface Props {
   id: number;
@@ -17,6 +19,7 @@ interface Props {
 // the dispatcher actions, which call reducers.
 export function PyDetail({ id, view, now, actions, onClose, onError, onFullRecord }: Props) {
   const [busy, setBusy] = useState(false);
+  const pi = usePiSensors();
   const h = view.hh.get(id);
   if (!h) return null;
   const p = view.prio.get(id);
@@ -101,6 +104,8 @@ export function PyDetail({ id, view, now, actions, onClose, onError, onFullRecor
         </div>
         {p?.reason && <p className="py-d-reason">{p.reason}</p>}
       </div>
+
+      {pi.available && pi.household === id && <LiveSensors pi={pi} />}
 
       <div className="py-d-tiles">
         <div>
