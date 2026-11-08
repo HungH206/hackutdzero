@@ -1,8 +1,8 @@
-# Graphics handoff: monitor and CBRE dashboards
+# Graphics handoff: monitor dashboards
 
 This is for the next agent (or person) taking over the **visual layer**: a full revamp of the graphics, layout and styling of every dashboard. The data layer, scoring and backend are finished enough for the demo. Do not change them. Change how things look.
 
-Read `AGENTS.md` first (hard rules), then this file. The full design brief is [`prompts/design/apple-grade-design-system.md`](../prompts/design/apple-grade-design-system.md). The branch is `monitor-dashboard`.
+Read `AGENTS.md` first (hard rules), then this file. The full design brief is [`prompts/design/apple-grade-design-system.md`](../prompts/design/apple-grade-design-system.md). Start from Aryan's branch `design/main-3d` (the 3D main screen) and work on `design/cohesive`. The look is light and professional, with one fictional satellite map base shared by every map (brief, section 5).
 
 Deadline: final submission **Sun Nov 8, 12 PM CT**, with judging 1-4 PM. Keep every screen working at every commit. If a redesign isn't done by about 10 AM, ship what works.
 
@@ -18,16 +18,15 @@ npm run dashboards          # one dev server + one localhost port per dashboard
 
 | Port | Dashboard | Default screen | Main files |
 |---|---|---|---|
-| 5180 | Network graph (main) | `graph` | `src/ui/py/Graph.tsx`, `Orb.tsx`, `py.css` |
+| 5180 | Main: 3D Cedar Hollow + dispatch queue | `graph` | `src/ui/command/*` (on `design/main-3d`) |
 | 5181 | Operations overview | `overview` | `src/ui/overview/*` |
 | 5182 | Houses | `houses` | `src/ui/houses/*` |
 | 5183 | Live map | `map` | `src/ui/MapCanvas.tsx`, `QueuePanel.tsx`, `DetailCard.tsx` |
 | 5184 | Building view (drill-down) | `tree` | `src/ui/py/Drill.tsx` |
 | 5185 | Analytics | `analytics` | `src/ui/Analytics.tsx`, `Gauges.tsx` |
-| 5186 | CBRE property operations | CBRE app | `src/cbre/*` |
 
 - Every port forwards to **one** Vite server on 5179. That server runs the SpacetimeDB module in-process (`HEADCOUNT_SOURCE=local`), so all ports share one simulation.
-- Ports are configured in `monitor/dashboards.json`. A URL `?view=` or `?app=cbre` overrides the port default. Other deep links: `?h=<householdId>` and `?b=<buildingId>`.
+- Ports are configured in `monitor/dashboards.json`. A URL `?view=` overrides the port default. Other deep links: `?h=<householdId>` and `?b=<buildingId>`.
 - Trigger a disaster with the **New Simulation** button in the header. Headless alternative: `curl -X POST http://127.0.0.1:5179/__headcount/call -d '{"reducer":"sim_quake","args":{"x":200,"y":160,"magnitude":1}}'`.
 - Other reducers: `sim_fire {householdId}`, `sim_power_loss {x,y,radius}`, `sim_fast_forward {minutes}` (1-240), `sim_reset {}`.
 - Typecheck with `npx tsc --noEmit -p .`. Do this before every commit.
@@ -44,7 +43,7 @@ npm run dashboards          # one dev server + one localhost port per dashboard
 ## 2. Rules the revamp must keep (from AGENTS.md)
 
 1. **Clients never compute priority.** HPI, band, rank, reason and factor breakdown (`E S C V K L M`) come only from the `priority` table. You may display them however you want. Do not re-derive, re-weight or re-sort by anything except `rank` or `hpi`.
-2. **Synthetic data only.** Visible labels must say that simulated data is simulated. The 911 hand-off is simulated, and the CBRE dollars are synthetic. Keep the "Synthetic portfolio" note and the CBRE fine print.
+2. **Synthetic data only.** Visible labels must say that simulated data is simulated. The 911 hand-off is simulated, and so is the map imagery ("Simulated imagery · Cedar Hollow is fictional").
 3. **Need-based ranking only.** Do not add income, race, immigration status or insurance value to any household display or sort.
 4. **Every score shows its reason.** Wherever a household's priority appears prominently, its `reason` string must be reachable in one click.
 5. **No secrets** and no `.env` in the repo. Do not commit the reference media (see section 6).
@@ -80,8 +79,6 @@ const now  = useScenarioNow(snapshot.clockOffsetMicros);
   - Analytics data: `bandOf`, `foundCurve`, `timesToFound`, `median`, `ladderFunnel`, `bandCounts`.
 - Household world coordinates match `MapCanvas`. Buildings have `x, y, w, h`, and the responder station is the exported `STATION`.
 
-CBRE uses a different estimate model (`src/cbre/model.ts`, `finance.ts`, synthetic `portfolio.ts`). It never touches HPI. The README "CBRE view" section documents the formulas, so if you change a formula, change the README in the same commit. A purely visual revamp should not touch these files.
-
 ---
 
 ## 4. Screen inventory: what each one must still do
@@ -90,7 +87,7 @@ You can replace any markup, CSS or SVG. The **behaviour** in each row is what ju
 
 | Screen | Must keep |
 |---|---|
-| **Header** (`ui/py/Header.tsx`, every screen except Overview and CBRE) | Switch between all screens. Zoom and filter controls on the graph. Analytics button with an open-count badge. Bell that opens the event log with an unread count. New Simulation (`ui/DemoPanel.tsx`). Scenario clock with a fast-forward offset. Connection status. Search (⌘K focuses the command dock). |
+| **Header** (`ui/py/Header.tsx`, every screen except Overview) | Switch between all screens. Zoom and filter controls on the graph. Analytics button with an open-count badge. Bell that opens the event log with an unread count. New Simulation (`ui/DemoPanel.tsx`). Scenario clock with a fast-forward offset. Connection status. Search (⌘K focuses the command dock). |
 | **Network graph** (`ui/py/Graph.tsx`) | Neighborhood sun at the center, building hubs around it, household nodes around their building. Node style shows status. Rank badges on the top households. Click a household to open `PyDetail`. Click a building to drill into the tree. Pan and zoom. Filter: all / open / critical and needs help. |
 | **Analysis + command dock** (`ui/py/Analysis.tsx`, `ui/CommandDock.tsx`) | Concern cards (fire, power clocks, help requests, silent, unknown; from `ui/py/concerns.ts`) that select a household. The dock takes text commands (`quake`, `fire`, `ff 10`, `reset`, household names) and shows the median time-to-found and next power clock. |
 | **Household detail** (`ui/py/Detail.tsx` on graph and tree, `ui/DetailCard.tsx` on map) | Name, building and unit. HPI with band and **reason**. Factor breakdown. Ladder step and next-step countdown. Backup-power minutes. Minutes silent. Check-in state. Buttons for Found OK, Needs help and Assisted. Override with a logged reason (DetailCard). |
@@ -98,11 +95,10 @@ You can replace any markup, CSS or SVG. The **behaviour** in each row is what ju
 | **Building view** (`ui/py/Drill.tsx`) | Building switcher. Category groups (help, open, power, silent, found, unknown) that fan out to their households with HPI and ladder progress. |
 | **Houses** (`ui/houses/Houses.tsx`) | Every household drawn **recognizably as a house**: the user asked for this specifically, and it should stay calm and easy on the eyes. Status by color plus pins for urgent, help and fire. Responder routes for dispatched households. Summary card. Color key. Card for the selected house with a link to the full record. |
 | **Live map** (`ui/MapCanvas.tsx` + `QueuePanel` + `DetailCard` + `Legend`) | Map layers (heat, hazard, responders, outage, power) with toggles. Ranked queue whose hover is linked to the map. Fly-to on select. |
-| **Overview** (`ui/overview/Overview.tsx`) | Stat pills, building title with prev/next, and tabs for Units, Escalations and Alerts. Unit layout by floor with priority chips. Waiting list that expands to a record with actions. Its own icon rail links to the other screens and to CBRE. |
+| **Overview** (`ui/overview/Overview.tsx`) | Stat pills, building title with prev/next, and tabs for Units, Escalations and Alerts. Unit layout by floor with priority chips. Waiting list that expands to a record with actions. Its own icon rail links to the other screens. |
 | **Analytics** (`ui/Analytics.tsx`, `Gauges.tsx`) | Found curve over time, ladder funnel, band counts, coverage and equity meter. |
 | **Event log** (`ui/EventLog.tsx`) | Timeline rows by severity. Click a row to select its household. |
 | **Toasts** (`ui/Toasts.tsx`) | At most 2 at a time, dismissible. Click one to select the household. Must not cover primary actions. Positions per screen are in `py.css` (`.screen-*` rules). |
-| **CBRE** (`cbre/CbreApp.tsx`, `FinancePanel.tsx`) | Horizon filter (24H/72H/7D). Top-3 buildings at risk with failure odds and sparklines. Portfolio exposure. Selected building: revenue at risk, downtime, and tabs for systems, tenants, action and exposure. Financial impact: gross, recovery, retained and NOI tiles, a cash-flow-at-risk chart, the loss bridge and the allocation bar. All-buildings table. Synthetic labels. |
 
 ---
 
@@ -112,7 +108,7 @@ You can replace any markup, CSS or SVG. The **behaviour** in each row is what ju
 - **CSS layers:**
   - `styles.css`: base tokens and the shared classes (map stage, queue, detail card, toasts, analytics page).
   - `py.css`: dark teal/gold skin on `.py-app`. It overrides tokens and positions panels per screen through `.screen-<name>` classes on the root.
-  - Each newer screen has its own CSS file: `overview.css` (`.ov-*`), `houses.css` (`.hs-*`), `cbre.css` (`.cb-*`).
+  - Each newer screen has its own CSS file: `overview.css` (`.ov-*`), `houses.css` (`.hs-*`), and on `design/main-3d` `command.css`.
 - **Root class:** `App.tsx` renders `app py-app screen-<screen> [has-detail] [incident]`, so CSS can react to the current screen, an open detail panel, and an active incident.
 - **Orbs:** `ui/py/Orb.tsx` draws the graph nodes in SVG. Dropping PNGs named `sun, rose, violet, mint, sky, amber, ember, slate, focus` into `src/assets/orbs/` replaces them automatically (`import.meta.glob`). This is the easiest hook if the new graphics are rendered images.
 - **Icons:** `ui/Icon.tsx` is a small set of inline SVG paths. Add icons there instead of pulling in an icon font.
@@ -124,18 +120,22 @@ The user's feedback so far: the first map-first design "doesn't look good". Earl
 
 ## 6. Design references (local only, not in git)
 
-The user keeps these in the repo root. They are untracked on purpose, so **do not commit them**. Ask the user for them if you don't have them.
+The user sends these as `headcount-design-references.zip`. They are untracked on purpose (`design-refs/` is in `.gitignore`), so **do not commit them**.
 
 | File | Use it for |
 |---|---|
-| `python.mp4` (policy-platform network graph) | **Main dashboard** (graph, building view, header, analysis and dock). Glossy bezel orbs, light-beam links, spotlight background with grain, condensed labels. |
-| `DASHBOARD EXAMPLEE.webp` (terrain map + frosted glass card) | **Houses** screen. Tilt-shift terrain, white roads, dashed routes, frosted cards with thin oversized numerals. |
-| `DASHBOARD EXMPLEEE.mp4` (Haulix logistics app) | **Overview** (the "regular" dashboard). Charcoal, icon rail, stat pills, lime primary button, dashed cargo cells, package list. |
-| `DASHBOARD EXAMPLE.webp` (staking finance dashboard) | **CBRE** ("super finance based"). Near-black with lavender, asset cards with sparklines, promo card, giant numbers, slider, stat tiles. |
-| `executive-dash2.png.webp` (executive KPI overview) | **CBRE executive layer**: KPI comparison tiles, treemap, drag-to-zoom combo chart. |
-| `ai-dashboard-design.jpg` (analytics workspace + assistant panel) | **Analytics**: floating cards over a choropleth, bubble matrix, radar, legend with range sliders, assistant panel pattern for the command dock. |
+| `R01_main-graph_network.mp4` | Building view drill and the command dock composition. Structure only; re-create it on light surfaces. |
+| `R02_houses_terrain-card.webp` | **Houses**: tilt, tilt-shift depth of field, frosted card with a thin oversized numeral. |
+| `R03_overview_fleet-app.mp4` | **Overview**: rail, stat pills, tabs, cutaway cells, waiting list, gauges, warning bars. Converted to light. |
+| `R04_analytics_workspace.jpg` | **Analytics**: floating cards over a map, bubble matrix, radar, legend with range slider, side panel. |
+| `R05_analytics_executive-kpis.webp` | **Analytics**: KPI comparison tiles, "before vs now" line chart, treemap. |
+| `R06_map_satellite-city-topdown.jpg` | **Every map**: satellite imagery, white haloed labels, control cluster, scale bar, place card. |
+| `R07_map_satellite-regional.jpg` | Satellite palette at regional zoom (Houses wide view). |
+| `R08_map_satellite-rooftop-closeup.webp` | Roof, tree-canopy and shadow detail. |
+| `R09_map_pin-over-rooftops.png` | The red teardrop pin for urgent households. |
+| `R10_map_3d-aerial-callouts.webp` | **Main 3D screen**: tilted aerial, callout pills, filter chips, round glass buttons. |
 
-The user may also supply PNG artwork (for example orbs). Prefer their assets over generated ones when given.
+The satellite look must be **generated for the fictional Cedar Hollow** (procedural paint in `sitePlan.ts`, or an optional generated texture aligned to it). No real imagery, map tiles, map APIs or map-provider branding.
 
 ---
 
@@ -144,12 +144,9 @@ The user may also supply PNG artwork (for example orbs). Prefer their assets ove
 - The graph orbs and backgrounds are still procedural SVG. This is the user's biggest complaint area.
 - Houses: house glyphs are small at 1440×900. The two homes in the south have no building lot under them. The office and warehouse lots are empty rectangles.
 - Overview: the floor stack leaves dead space under short buildings. There is no responsive layout below about 1180 px beyond stacking.
-- CBRE:
-  - The sidebar is hidden at narrow widths, and nothing replaces its navigation.
-  - The cash-flow chart legend stacks vertically.
-  - Top cards show "since start" deltas from a client-side history that resets on reload.
-- Map screen (`MapCanvas.tsx`) is the oldest styling and only re-colored. It doesn't match the other references yet.
-- There is no light theme. All screens assume a dark projector or laptop.
+- Map screen (`MapCanvas.tsx`) is the oldest styling and only re-colored. It should move to the shared satellite base with the USGS-style list beside the map.
+- The 3D main screen's ground is a flat light site plan. The user wants it to look like a satellite map view (R06-R10).
+- Screens other than the 3D main screen are still dark. The target is one light appearance everywhere (brief, section 3.1).
 
 ---
 
@@ -158,11 +155,11 @@ The user may also supply PNG artwork (for example orbs). Prefer their assets ove
 - `spacetimedb/` (module, `recompute_hpi`, HPI math in `src/hpi.ts`) and the README HPI section.
 - `monitor/src/data/*` (provider, types, derive). Read-only for a visual revamp.
 - `monitor/local-bridge.ts`, `vite.config.ts`, `scripts/dashboards.mjs`, `dashboards.json` (the port setup).
-- `monitor/src/cbre/model.ts`, `finance.ts`, `portfolio.ts` (numbers and formulas documented in the README).
+- `monitor/src/cbre/` and port 5186 (out of scope for this pass).
 
 ## 9. Working agreement
 
-- Stay on `monitor-dashboard`, or branch from it. Do **not** push to `main` without telling the team.
+- Work on `design/cohesive` (from `design/main-3d`). Do **not** push to `main` without telling the team.
 - Commit one screen at a time. Run `tsc` and take before/after screenshots of all-clear and incident.
 - End commit messages with the attribution lines your harness specifies.
 - Update the README Status table and "Screens and deep links" if any screen's capabilities change.
