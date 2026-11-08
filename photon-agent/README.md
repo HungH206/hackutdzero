@@ -5,11 +5,11 @@ Texts a neighborhood during a disaster, works out who is accounted for from what
 ## Run it
 
 1. Start SpacetimeDB with `spacetime start`, then run `./scripts/setup-local.sh`. That publishes the module and writes an agent identity to `.env`.
-2. Fill in `PHOTON_API_KEY` and `ANTHROPIC_API_KEY` in `.env`. The key needs `project:read`, `project:write`, `platforms:read` and `platforms:write`.
+2. Fill in `PHOTON_API_KEY` and `GEMINI_API_KEY` in `.env`. The key needs `project:read`, `project:write`, `platforms:read` and `platforms:write`.
 3. `npm install`, then `npm start`.
 4. Open http://127.0.0.1:8787, add each phone, and have each person text the number shown next to them.
 
-Without an Anthropic key it reads messages with keyword matching. Without a Photon key it prints texts instead of sending them.
+Without a Gemini key it reads messages with keyword matching. Without a Photon key it prints texts instead of sending them.
 
 ## Voice
 

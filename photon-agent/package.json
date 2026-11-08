@@ -14,7 +14,7 @@
     "setup:voice": "node --env-file-if-exists=.env --experimental-strip-types --disable-warning=ExperimentalWarning scripts/setup-voice.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.6.0",
+    "@google/genai": "^3.0.0",
     "@photon-ai/api": "^0.6.0",
     "retell-sdk": "^6.2.19",
     "socket.io-client": "^4.8.3"
