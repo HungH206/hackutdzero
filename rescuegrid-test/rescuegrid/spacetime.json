@@ -4,5 +4,5 @@
   },
   "server": "maincloud",
   "database": "rescuedb",
-  "module-path": "./spacetimedb"
+  "module-path": "../../spacetimedb"
 }

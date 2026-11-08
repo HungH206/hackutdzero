@@ -233,7 +233,7 @@ Update this table honestly before submitting.
 |---|---|
 | Concept, HPI formula, escalation design | Done (design) |
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
-| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). **Not yet published to a real SpacetimeDB server.** Needs reconciling with Hung's schema. |
+| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). Target server: SpacetimeDB Maincloud, database **`rescuedb`** (the RescueGrid workspace). `rescuegrid-test/rescuegrid` now points its `spacetime.json` and publish scripts at this module. **This module has not been published to `rescuedb` yet**; until it is, `rescuedb` still holds the earlier starter template. |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
 | Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. The live SpacetimeDB connection is written but **untested** until bindings are generated. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
@@ -262,9 +262,11 @@ To run it for real, install the SpacetimeDB CLI ([spacetimedb.com/install](https
 ```bash
 spacetime start                                  # local server on ws://localhost:3000
 spacetime publish --module-path spacetimedb headcount
+# shared team database (RescueGrid on Maincloud):
+spacetime publish --server maincloud --module-path spacetimedb rescuedb
 ```
 
-The CLI commands above have not been run yet. Check flag names against `spacetime publish --help` for your CLI version.
+The CLI commands above have not been run yet. Publishing this module over the starter template in `rescuedb` changes the schema completely, so the first publish needs the CLI's clear-data option; that is safe only while `rescuedb` holds no data worth keeping. Check flag names against `spacetime publish --help` for your CLI version.
 
 ### Monitor dashboard (`/monitor`)
 
