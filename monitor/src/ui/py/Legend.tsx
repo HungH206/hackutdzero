@@ -25,7 +25,7 @@ export function PyLegend({ view, updates }: { view: View; updates: number }) {
             <li key={k}>
               <span className="py-chip-orb">
                 <svg width="14" height="14" viewBox="-7 -7 14 14" aria-hidden="true">
-                  {k === 'sun' ? <circle r={5.5} fill="url(#orb-body-sun)" /> : <Orb kind={k} x={0} y={0} r={5} bezel={false} bloom={0} />}
+                  <Orb kind={k} x={0} y={0} r={k === 'sun' || k === 'rose' ? 4.3 : 5} bezel={k === 'sun' || k === 'rose'} />
                 </svg>
                 <b>{n}</b>
               </span>

@@ -122,17 +122,45 @@ export function Graph({ view, zoom, filter, selected, onSelect, onOpenBuilding }
     >
       <defs>
         <OrbDefs />
-        <linearGradient id="beam-gold" x1="0" x2="1">
-          <stop offset="0%" stopColor="#ffe3a6" stopOpacity="0.95" />
-          <stop offset="55%" stopColor="#e8b56b" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#e8b56b" stopOpacity="0.08" />
+        {/* light pool around the hub: the hub is the light source for every beam */}
+        <radialGradient id="hub-light">
+          <stop offset="0%" stopColor="#ffd99a" stopOpacity="0.2" />
+          <stop offset="18%" stopColor="#f2c27a" stopOpacity="0.09" />
+          <stop offset="45%" stopColor="#d9a860" stopOpacity="0.03" />
+          <stop offset="100%" stopColor="#d9a860" stopOpacity="0" />
+        </radialGradient>
+        {/* beams: brightest at the source, falling off toward the building */}
+        <linearGradient id="beam-core" x1="0" x2="1">
+          <stop offset="0%" stopColor="#fff6e2" stopOpacity="1" />
+          <stop offset="60%" stopColor="#ffe6b8" stopOpacity="0.75" />
+          <stop offset="100%" stopColor="#f5d39a" stopOpacity="0.35" />
+        </linearGradient>
+        <linearGradient id="beam-glow" x1="0" x2="1">
+          <stop offset="0%" stopColor="#f7c977" stopOpacity="0.7" />
+          <stop offset="70%" stopColor="#e9a94f" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#e9a94f" stopOpacity="0.06" />
+        </linearGradient>
+        <linearGradient id="beam-hot" x1="0" x2="1">
+          <stop offset="0%" stopColor="#ffd0b0" stopOpacity="0.85" />
+          <stop offset="70%" stopColor="#ff8a6a" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#ff6a5a" stopOpacity="0.12" />
+        </linearGradient>
+        <linearGradient id="shaft" x1="0" x2="1">
+          <stop offset="0%" stopColor="#d8efe6" stopOpacity="0.07" />
+          <stop offset="100%" stopColor="#d8efe6" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="beam-teal" x1="0" x2="1">
-          <stop offset="0%" stopColor="#bff6ee" stopOpacity="0.7" />
-          <stop offset="100%" stopColor="#5fd0c4" stopOpacity="0.05" />
+          <stop offset="0%" stopColor="#c9f3ea" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#7fd6c8" stopOpacity="0.1" />
         </linearGradient>
-        <filter id="beam-blur" x="-20%" y="-200%" width="140%" height="500%">
-          <feGaussianBlur stdDeviation="3.2" />
+        <filter id="beam-blur" x="-10%" y="-400%" width="120%" height="900%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
+        <filter id="beam-soft" x="-10%" y="-400%" width="120%" height="900%">
+          <feGaussianBlur stdDeviation="1.4" />
+        </filter>
+        <filter id="shaft-blur" x="-10%" y="-300%" width="120%" height="700%">
+          <feGaussianBlur stdDeviation="9" />
         </filter>
         <filter id="spark" x="-300%" y="-300%" width="700%" height="700%">
           <feGaussianBlur stdDeviation="3" result="b" />
@@ -145,31 +173,49 @@ export function Graph({ view, zoom, filter, selected, onSelect, onOpenBuilding }
       </defs>
 
       <g transform={`translate(${pan.x + CX} ${pan.y + CY}) scale(${zoom}) translate(${-CX} ${-CY})`}>
-        {/* faint background rays, like the long beams that leave the frame in the reference */}
-        {Array.from({ length: 10 }, (_, i) => {
-          const a = (i / 10) * Math.PI * 2 + 0.17;
-          const len = 520 + hash(i + 40) * 260;
-          return <line key={i} x1={CX} y1={CY} x2={CX + Math.cos(a) * len} y2={CY + Math.sin(a) * len} stroke="#9fe3db" strokeOpacity={0.05} strokeWidth={1} />;
-        })}
+        {/* long soft shafts of light that leave the frame */}
+        <g className="py-light" pointerEvents="none">
+          {Array.from({ length: 9 }, (_, i) => {
+            const a = (i / 9) * Math.PI * 2 + 0.17 + (hash(i + 2) - 0.5) * 0.3;
+            const len = 700 + hash(i + 40) * 300;
+            const w = 10 + hash(i + 5) * 26;
+            return (
+              <rect
+                key={i}
+                x={40}
+                y={-w / 2}
+                width={len}
+                height={w}
+                fill="url(#shaft)"
+                filter="url(#shaft-blur)"
+                transform={`translate(${CX} ${CY}) rotate(${(a * 180) / Math.PI})`}
+              />
+            );
+          })}
+        </g>
 
-        {/* center -> building beams */}
-        {hubs.map((g) => {
-          const dx = g.x - CX;
-          const dy = g.y - CY;
-          const len = Math.hypot(dx, dy);
-          const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
-          const w = g.hot ? 14 : 8;
-          return (
-            <g key={`beam${g.id}`} transform={`translate(${CX} ${CY}) rotate(${deg})`} pointerEvents="none">
-              <path d={`M 34 0 Q ${len * 0.45} ${-w} ${len - 30} 0 Q ${len * 0.45} ${w} 34 0 Z`} fill="url(#beam-gold)" filter="url(#beam-blur)" opacity={g.hot ? 1 : 0.75} />
-              <path d={`M 34 0 Q ${len * 0.45} ${-w * 0.28} ${len - 30} 0 Q ${len * 0.45} ${w * 0.28} 34 0 Z`} fill="url(#beam-gold)" opacity={0.9} />
-              <line x1={34} y1={0} x2={len - 30} y2={0} stroke="#fff1cf" strokeOpacity={g.hot ? 0.85 : 0.45} strokeWidth={g.hot ? 1.3 : 0.8} />
-              {view.disasterActive && g.open > 0 && (
-                <circle r={2.2} fill="#fff6dc" filter="url(#spark)" className="py-travel" style={{ ['--len' as string]: `${len - 64}px`, animationDelay: `${hash(g.id) * 2}s` }} cx={34} />
-              )}
-            </g>
-          );
-        })}
+        {/* center -> building beams: halo, glow and a bright core, added like real light */}
+        <g className="py-light" pointerEvents="none">
+          {hubs.map((g) => {
+            const dx = g.x - CX;
+            const dy = g.y - CY;
+            const len = Math.hypot(dx, dy);
+            const deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+            const x0 = 30;
+            const span = len - x0 - 20;
+            const glow = g.hot ? 'url(#beam-hot)' : 'url(#beam-glow)';
+            return (
+              <g key={`beam${g.id}`} transform={`translate(${CX} ${CY}) rotate(${deg})`}>
+                <rect x={x0} y={g.hot ? -7 : -5} width={span} height={g.hot ? 14 : 10} rx={5} fill={glow} filter="url(#beam-blur)" opacity={g.hot ? 0.75 : 0.5} />
+                <rect x={x0} y={-1.3} width={span} height={2.6} rx={1.3} fill={glow} filter="url(#beam-soft)" opacity={0.9} />
+                <rect x={x0} y={g.hot ? -0.65 : -0.45} width={span} height={g.hot ? 1.3 : 0.9} rx={0.45} fill="url(#beam-core)" opacity={g.hot ? 1 : 0.85} />
+                {view.disasterActive && g.open > 0 && (
+                  <circle r={2} fill="#fff8e6" filter="url(#spark)" className="py-travel" style={{ ['--len' as string]: `${span - 10}px`, animationDelay: `${hash(g.id) * 2}s` }} cx={x0} />
+                )}
+              </g>
+            );
+          })}
+        </g>
 
         {/* building -> household spokes */}
         {hubs.map((g) =>
@@ -181,8 +227,8 @@ export function Graph({ view, zoom, filter, selected, onSelect, onOpenBuilding }
                 y1={g.y}
                 x2={s.x}
                 y2={s.y}
-                stroke={s.kind === 'ember' ? '#ff8fa0' : s.kind === 'amber' ? '#ffd27a' : s.kind === 'violet' ? '#bda9ff' : '#8fded2'}
-                strokeOpacity={hover === s.h.id || selected === s.h.id ? 0.9 : 0.32}
+                stroke={s.kind === 'ember' ? '#ff8fa0' : s.kind === 'amber' ? '#ffd27a' : s.kind === 'violet' ? '#c2b3ff' : '#d9e2dc'}
+                strokeOpacity={hover === s.h.id || selected === s.h.id ? 0.9 : s.kind === 'mint' || s.kind === 'sky' || s.kind === 'slate' ? 0.16 : 0.4}
                 strokeWidth={0.8}
                 strokeDasharray={s.kind === 'mint' || s.kind === 'sky' ? undefined : '2 3'}
                 pointerEvents="none"
@@ -256,7 +302,13 @@ export function Graph({ view, zoom, filter, selected, onSelect, onOpenBuilding }
 
         {/* building hubs */}
         {hubs.map((g) => {
-          const left = Math.cos(g.a) < -0.15;
+          // labels go left on the left side, and bottom-right where the command dock sits;
+          // a left label that would run under the time rail sits above the orb instead
+          const side = Math.cos(g.a) < -0.15 || (g.y > CY + 200 && g.x > CX) ? 'left' : 'right';
+          const place = side === 'left' && g.x - 24 - g.name.length * 7.4 < 150 ? 'top' : side;
+          const lx = place === 'top' ? Math.max(g.x, 124 + g.name.length * 3.7) : g.x + (place === 'left' ? -24 : 24);
+          const ly = place === 'top' ? g.y - 44 : g.y - 2;
+          const tagX = place === 'top' ? -23 : place === 'left' ? -46 : 0;
           return (
             <g
               key={`b${g.id}`}
@@ -272,11 +324,11 @@ export function Graph({ view, zoom, filter, selected, onSelect, onOpenBuilding }
             >
               <circle cx={g.x} cy={g.y} r={30} fill="transparent" />
               <Orb kind={g.id < 0 ? 'slate' : 'rose'} x={g.x} y={g.y} r={14} bloom={g.hot ? 3.4 : 2.4} />
-              <g transform={`translate(${g.x + (left ? -24 : 24)} ${g.y - 2})`} pointerEvents="none">
-                <text className="py-label" textAnchor={left ? 'end' : 'start'}>
+              <g transform={`translate(${lx} ${ly})`} pointerEvents="none">
+                <text className="py-label" textAnchor={place === 'top' ? 'middle' : place === 'left' ? 'end' : 'start'}>
                   {g.name}
                 </text>
-                <g transform={`translate(${left ? -46 : 0} 8)`}>
+                <g transform={`translate(${tagX} 8)`}>
                   <path d="M4 0 H46 L42 14 H0 Z" className="py-tag" />
                   <text x={23} y={10.5} className="py-tag-t">
                     {view.disasterActive ? `${g.pct}%` : `${g.hs.length}`}

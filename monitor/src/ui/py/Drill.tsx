@@ -156,11 +156,11 @@ export function Drill({ view, buildingId, cat, onCat, onBuilding, selected, onSe
           return (
             <g key={p.h.id} className="py-node" role="button" tabIndex={0} onClick={() => onSelect(p.h.id)} onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(p.h.id)} aria-label={`${p.h.name}${pr?.scored ? `, HPI ${pr.hpi.toFixed(0)}` : ''}`}>
               <rect x={p.x - 10} y={p.y - 18} width={210} height={38} fill="transparent" />
-              <Orb kind={kind} x={p.x} y={p.y} r={4.5} bezel={false} bloom={2.4} />
-              <text x={p.x + 14} y={p.y - 3} className={`py-item${on ? ' on' : ''}`}>
+              <Orb kind={kind} x={p.x} y={p.y} r={5.5} />
+              <text x={p.x + 16} y={p.y - 3} className={`py-item${on ? ' on' : ''}`}>
                 {p.h.name.length > 18 ? `${p.h.name.slice(0, 17)}…` : p.h.name} <tspan className="py-item-u">{p.h.unit}</tspan>
               </text>
-              <g transform={`translate(${p.x + 14} ${p.y + 4})`}>
+              <g transform={`translate(${p.x + 16} ${p.y + 4})`}>
                 <path d="M3 0 H50 L47 11 H0 Z" className="py-tag" />
                 <text x={25} y={8.4} className="py-tag-t sm">
                   {pr?.scored ? `HPI ${pr.hpi.toFixed(0)}` : 'NO SENSOR'}

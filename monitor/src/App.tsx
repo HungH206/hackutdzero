@@ -112,7 +112,10 @@ export function App() {
 
   return (
     <div className={`app py-app screen-${screen === 'map' ? 'live' : screen}${selectedId !== null ? ' has-detail' : ''}${view.disasterActive ? ' incident' : ''}`}>
-      <div className="py-bg" aria-hidden="true" />
+      <div className="py-bg" aria-hidden="true">
+        <i className="py-cone" />
+        <i className="py-grain" />
+      </div>
 
       {screen === 'graph' && (
         <>
