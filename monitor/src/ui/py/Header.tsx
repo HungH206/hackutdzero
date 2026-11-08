@@ -4,7 +4,7 @@ import type { ConnectionInfo } from '../../data/types';
 import { Icon, type IconName } from '../Icon';
 import type { GraphFilter } from './Graph';
 
-export type Screen = 'overview' | 'graph' | 'tree' | 'houses' | 'map' | 'analytics' | 'log';
+export type Screen = 'overview' | 'graph' | 'tree' | 'houses' | 'map' | 'analytics' | 'log' | 'agent';
 
 interface Props {
   screen: Screen;
@@ -31,6 +31,7 @@ const NAV: { id: Screen; label: string; icon: IconName }[] = [
   { id: 'map', label: 'Live map', icon: 'map' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
   { id: 'log', label: 'Event log', icon: 'list' },
+  { id: 'agent', label: 'Neighborhood agent', icon: 'users' },
 ];
 
 export function Header(p: Props) {

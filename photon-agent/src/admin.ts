@@ -15,7 +15,9 @@ export interface AdminOptions {
   /** Runs a message through the agent as if that person had texted it. Replies come back instead of being sent. */
   chat?: (handle: string, text: string) => Promise<{ replies: { to: string; text: string }[]; source: string }>;
   /** Texts a dispatcher's announcement to everyone who has joined. */
-  announce?: (text: string) => Promise<{ sent: number; skipped: number }>;
+  announce?: (text: string, buildingId?: number) => Promise<{ sent: number; skipped: number }>;
+  /** Web pages allowed to call this server, such as the dashboard. Anything else is refused. */
+  allowedOrigins?: string[];
   /** A short dispatcher briefing for the current state, never waiting on the model. */
   briefing?: (s: Snapshot) => { headline: string; next: string[]; source: string; updating: boolean };
   /** Drafts an announcement for the dispatcher to edit. Never sends anything. */
@@ -40,12 +42,35 @@ const PAGE = (body: string, refresh = true) => `<!doctype html><meta charset="ut
 
 interface Exchange { who: string; text: string; source: string; replies: { to: string; text: string }[] }
 
-export function startAdmin({ port, db, store, assign, chat, announce, briefing, draft }: AdminOptions) {
+export function startAdmin({ port, db, store, assign, chat, announce, briefing, draft, allowedOrigins = [] }: AdminOptions) {
   const history: Exchange[] = [];
   let lastAnnounce = '';
+  const own = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
   createServer(async (req, res) => {
     try {
+      // Anything that texts people must come from this page or an allowed dashboard. Without this, any
+      // website open in the dispatcher's browser could post here. Requests with no Origin (curl) are local.
+      const origin = req.headers.origin;
+      if (origin && !own.has(origin)) {
+        if (!allowedOrigins.includes(origin)) {
+          res.writeHead(403, { 'content-type': 'text/plain' }).end('Origin not allowed');
+          return;
+        }
+        res.setHeader('access-control-allow-origin', origin);
+        res.setHeader('access-control-allow-private-network', 'true');
+        res.setHeader('access-control-allow-headers', 'content-type, accept');
+        res.setHeader('vary', 'Origin');
+      }
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204).end();
+        return;
+      }
+      const wantsJson = (req.headers.accept ?? '').includes('application/json');
       const url = new URL(req.url ?? '/', 'http://localhost');
+      if (req.method === 'GET' && url.pathname === '/api/status') {
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify({ ok: true, joined: store.contacts().filter((c) => c.spaceId && !c.stopped).length }));
+        return;
+      }
       if (req.method === 'POST') {
         let raw = '';
         for await (const chunk of req) raw += chunk;
@@ -71,8 +96,13 @@ export function startAdmin({ port, db, store, assign, chat, announce, briefing, 
           if (!announce) throw new Error('Announcements are not available.');
           const text = (form.get('text') ?? '').trim();
           if (!text) throw new Error('Type the announcement first.');
-          const r = await announce(text);
+          const building = form.get('building');
+          const r = await announce(text, building ? Number(building) : undefined);
           lastAnnounce = `Sent to ${r.sent} ${r.sent === 1 ? 'person' : 'people'}${r.skipped ? `, ${r.skipped} skipped (not joined yet, stopped, or send failed)` : ''}.`;
+          if (wantsJson) {
+            res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(r));
+            return;
+          }
         } else if (url.pathname === '/approve') {
           await db.approveTask(Number(form.get('id')), 'Dispatcher');
         } else if (url.pathname === '/enroll') {

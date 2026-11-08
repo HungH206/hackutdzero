@@ -89,9 +89,12 @@ const SCHEMA = {
   required: ['headline', 'next'],
 };
 
+const MODEL_GAP_MS = 45_000;
+
 /** Keeps the latest briefing per state of the world, so the page never waits on the model. */
 export class Briefing {
   private wanted = '';
+  private lastCall = 0;
   private ready: { hash: string; data: BriefingData } | null = null;
 
   private readonly llm: Llm | null;
@@ -113,7 +116,11 @@ export class Briefing {
 
   private async refresh(f: Facts, hash: string) {
     let data = rulesBriefing(f);
-    if (this.llm && f.active) {
+    // The facts change on every simulation tick. Call the model at most once per gap so a busy event
+    // cannot use up the quota; in between, the dispatcher sees the plain rules version.
+    const now = Date.now();
+    if (this.llm && f.active && now - this.lastCall >= MODEL_GAP_MS) {
+      this.lastCall = now;
       const raw = await this.llm({ system: SYSTEM, user: `<data>\n${JSON.stringify(f)}\n</data>`, schema: SCHEMA, timeoutMs: 10_000 });
       try {
         const parsed = raw ? JSON.parse(raw) : null;

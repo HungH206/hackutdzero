@@ -73,7 +73,7 @@ const chat = (handle: string, text: string) => {
   return result;
 };
 
-startAdmin({ port: Number(env.ADMIN_PORT ?? 8787), db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text) => agent.announce(text), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
+startAdmin({ port: Number(env.ADMIN_PORT ?? 8787), db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text, building) => agent.announce(text, building), allowedOrigins: (env.ADMIN_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',').map((o) => o.trim()).filter(Boolean), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
 
 let running = false;
 setInterval(async () => {
