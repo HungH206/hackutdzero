@@ -12,7 +12,7 @@ Lines:
   {"type":"state", ...}   about 5 per second: raw pins, activity 0..1, edge counts, local risk
   {"type":"event", ...}   one per trigger (flame, heat, shock, sound, motion)
 """
-import json, sys, threading, time
+import json, os, sys, threading, time
 
 PINS = {"flame": 22, "heat": 27, "shock": 24, "sound": 17}
 MOTION_PIN = 23
@@ -76,6 +76,19 @@ idle = {n: d.value for n, d in hazards.items()}
 with lock:
     for n in edges: edges[n] = 0
 
+cam = {"status": "off"}
+cam_trigger = threading.Event()
+if os.environ.get("HC_CAMERA", "1") == "1":
+    try:
+        import flame_color
+        def on_cam(r):
+            cam.update(r)
+            if r.get("flame"):
+                cam_trigger.set()
+        flame_color.start_camera_thread(on_cam)
+    except Exception as e:
+        cam.update({"status": "unavailable", "message": str(e)[:120]})
+
 activity = {n: 0.0 for n in PINS}
 last_seen = {n: None for n in PINS}
 last_motion = None
@@ -100,6 +113,13 @@ while True:
                 beep()
             last_seen[n] = now
             activity[n] = 1.0
+    if cam_trigger.is_set():
+        cam_trigger.clear()
+        if last_seen["flame"] is None or now - last_seen["flame"] > 5:
+            out({"type": "event", "kind": "flame", "source": "camera", "t": time.time()})
+            beep()
+        last_seen["flame"] = now
+        activity["flame"] = 1.0
     m = motion.value
     # Motion only counts when it is held high for MOTION_HOLD s, or re-triggers
     # MOTION_EDGES times within MOTION_WINDOW s. A single blip is ignored.
@@ -134,6 +154,7 @@ while True:
              "activity": {n: round(v, 3) for n, v in activity.items()},
              "lastSeenAgo": {n: (None if last_seen[n] is None else round(now - last_seen[n], 1)) for n in PINS},
              "lastMotionAgo": None if last_motion is None else round(now - last_motion, 1),
+             "camera": {k: cam.get(k) for k in ("status", "orange", "baseline", "flame", "message")},
              "edges": totals, "motionCount": motion_total,
              "occupied": occupied, "risk": round(risk, 1), "level": level})
     time.sleep(0.01)
