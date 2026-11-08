@@ -20,12 +20,21 @@ export function photonSend(photon: Photon, project: string): Send {
 
 /** Adds a person to the shared line. Each person can be given a different number to text. */
 export async function assignLine(photon: Photon, project: string, handle: string): Promise<string> {
-  const assignment = await photon.projects.platforms.imessage.assignments.create({
-    path: { id: project },
-    headers: { idempotencyKey: `headcount-enroll:${handle}` },
-    body: { handle },
-  });
-  return assignment.assignedPhoneNumber;
+  try {
+    const assignment = await photon.projects.platforms.imessage.assignments.create({
+      path: { id: project },
+      headers: { idempotencyKey: `headcount-enroll:${handle}` },
+      body: { handle },
+    });
+    return assignment.assignedPhoneNumber;
+  } catch (error) {
+    // The handle may already have a line from an earlier run. Reuse it instead of failing.
+    if (!/already has a live assignment/i.test(error instanceof Error ? error.message : String(error))) throw error;
+    const { assignments } = await photon.projects.platforms.imessage.assignments.list({ path: { id: project } });
+    const existing = assignments.find((a: { handle: string }) => a.handle === handle);
+    if (!existing) throw error;
+    return existing.assignedPhoneNumber;
+  }
 }
 
 export function parseInbound(event: any): Inbound | null {

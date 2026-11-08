@@ -8,7 +8,7 @@ import './overview.css';
 // stat pills, breadcrumb + title row with actions, tabs, a unit layout grid
 // (cargo grid there) and a waiting list with an expandable card (packages there).
 
-export type OvNav = 'graph' | 'tree' | 'map' | 'houses' | 'analytics' | 'log';
+export type OvNav = 'graph' | 'tree' | 'map' | 'houses' | 'analytics' | 'log' | 'agent';
 type Tab = 'units' | 'escalations' | 'alerts';
 type Pri = 'critical' | 'high' | 'normal' | 'low' | 'found' | 'nosensor' | 'help';
 
@@ -82,6 +82,7 @@ export function Overview({ view, snapshot, now, actions, unread, onNav, onSelect
     { id: 'houses', icon: 'home', label: 'Houses' },
     { id: 'map', icon: 'map', label: 'Live map' },
     { id: 'analytics', icon: 'chart', label: 'Analytics' },
+    { id: 'agent', icon: 'users', label: 'Neighborhood agent' },
   ];
 
   return (

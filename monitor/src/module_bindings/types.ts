@@ -10,6 +10,15 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const Accounting = __t.object("Accounting", {
+  householdId: __t.u32(),
+  status: __t.string(),
+  sources: __t.u32(),
+  note: __t.string(),
+  updatedAtMicros: __t.u64(),
+});
+export type Accounting = __Infer<typeof Accounting>;
+
 export const Building = __t.object("Building", {
   id: __t.u32(),
   name: __t.string(),
@@ -59,6 +68,30 @@ export const Escalation = __t.object("Escalation", {
   done: __t.bool(),
 });
 export type Escalation = __Infer<typeof Escalation>;
+
+export const HeadcountSummary = __t.object("HeadcountSummary", {
+  id: __t.u8(),
+  total: __t.u32(),
+  accounted: __t.u32(),
+  reported: __t.u32(),
+  needsHelp: __t.u32(),
+  conflict: __t.u32(),
+  unaccounted: __t.u32(),
+  eventActive: __t.bool(),
+});
+export type HeadcountSummary = __Infer<typeof HeadcountSummary>;
+
+export const HelpTask = __t.object("HelpTask", {
+  id: __t.u64(),
+  householdId: __t.u32(),
+  state: __t.string(),
+  helperLabel: __t.string(),
+  reason: __t.string(),
+  approvedBy: __t.string(),
+  createdAtMicros: __t.u64(),
+  updatedAtMicros: __t.u64(),
+});
+export type HelpTask = __Infer<typeof HelpTask>;
 
 export const Household = __t.object("Household", {
   id: __t.u32(),
@@ -126,6 +159,18 @@ export const OverrideLog = __t.object("OverrideLog", {
   atMicros: __t.u64(),
 });
 export type OverrideLog = __Infer<typeof OverrideLog>;
+
+export const PersonClaim = __t.object("PersonClaim", {
+  id: __t.u64(),
+  householdId: __t.u32(),
+  sourceKey: __t.string(),
+  relation: __t.string(),
+  firsthand: __t.bool(),
+  kind: __t.string(),
+  detail: __t.string(),
+  atMicros: __t.u64(),
+});
+export type PersonClaim = __Infer<typeof PersonClaim>;
 
 export const Priority = __t.object("Priority", {
   householdId: __t.u32(),

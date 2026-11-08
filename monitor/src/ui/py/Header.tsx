@@ -4,7 +4,7 @@ import type { ConnectionInfo } from '../../data/types';
 import { Icon, type IconName } from '../Icon';
 import type { GraphFilter } from './Graph';
 
-export type Screen = 'overview' | 'graph' | 'tree' | 'houses' | 'map' | 'analytics' | 'log';
+export type Screen = 'overview' | 'graph' | 'tree' | 'houses' | 'map' | 'analytics' | 'log' | 'agent';
 
 interface Props {
   screen: Screen;
@@ -30,6 +30,7 @@ export const NAV: { id: Screen; label: string; icon: IconName; hint: string }[] 
   { id: 'map', label: 'Map', icon: 'map', hint: 'Every home on the map, top-down or tilted' },
   { id: 'tree', label: 'Buildings', icon: 'route', hint: 'Who in each building still needs reaching' },
   { id: 'overview', label: 'Units', icon: 'layers', hint: 'Floor-by-floor units and the waiting list' },
+  { id: 'agent', label: 'Neighborhood agent', icon: 'users', hint: 'Who still needs a reply, by neighborhood, and the drafted message' },
 ];
 
 
