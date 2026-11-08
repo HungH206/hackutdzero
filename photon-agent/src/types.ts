@@ -88,3 +88,12 @@ export interface UnderstandContext {
 }
 
 export type Understand = (ctx: UnderstandContext) => Promise<Understood>;
+
+export interface VoiceHooks {
+  /** Places a call to the dispatcher that speaks for this person. Safe to call repeatedly. */
+  speakFor(contact: Contact, household: Household, place: string, situation: string, key: string): Promise<void>;
+  /** Rings someone who hasn't answered the check-in. */
+  ring(contact: Contact, household: Household, kind: string, key: string): Promise<void>;
+  /** True when this text answered a question a dispatcher asked on a live call. */
+  answerPending(handle: string, text: string): Promise<boolean>;
+}

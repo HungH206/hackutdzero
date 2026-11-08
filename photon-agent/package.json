@@ -10,11 +10,13 @@
     "start": "node --env-file-if-exists=.env --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts",
     "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "e2e": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/e2e.ts"
+    "e2e": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/e2e.ts",
+    "setup:voice": "node --env-file-if-exists=.env --experimental-strip-types --disable-warning=ExperimentalWarning scripts/setup-voice.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
     "@photon-ai/api": "^0.6.0",
+    "retell-sdk": "^6.2.19",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {

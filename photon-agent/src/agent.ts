@@ -1,7 +1,7 @@
 import { copy } from './copy.ts';
 import { guardMessage } from './guard.ts';
 import type { Store } from './store.ts';
-import type { Account, Contact, Db, Household, Inbound, Language, Send, Snapshot, Task, Understand } from './types.ts';
+import type { Account, Contact, Db, Household, Inbound, Language, Send, Snapshot, Task, Understand, VoiceHooks } from './types.ts';
 
 const CLOSED = new Set(['done', 'cancelled']);
 const IN_PROGRESS = new Set(['asked', 'accepted']);
@@ -16,6 +16,8 @@ export interface AgentOptions {
   now?: () => number;
   askTimeoutMs?: number;
   followUpMs?: number;
+  ringAfterMs?: number;
+  voice?: VoiceHooks;
 }
 
 export interface Candidate { contact: Contact; minutes: number }
@@ -28,6 +30,9 @@ export class Agent {
   private readonly now: () => number;
   private readonly askTimeoutMs: number;
   private readonly followUpMs: number;
+  private readonly ringAfterMs: number;
+  private readonly voice: VoiceHooks | null;
+  private readonly checkinSentAt = new Map<string, number>();
   private snap: Snapshot | null = null;
 
   constructor(o: AgentOptions) {
@@ -38,6 +43,8 @@ export class Agent {
     this.now = o.now ?? Date.now;
     this.askTimeoutMs = o.askTimeoutMs ?? 90_000;
     this.followUpMs = o.followUpMs ?? 240_000;
+    this.ringAfterMs = o.ringAfterMs ?? 45_000;
+    this.voice = o.voice ?? null;
   }
 
   // ---------- Reads ----------
@@ -68,6 +75,12 @@ export class Agent {
     this.store.markSent(key);
   }
 
+  /** For callers outside the text loop, such as the end of a phone call. Goes through the same guard. */
+  async notify(to: Contact, text: string, key: string, aboutHousehold: number | null) {
+    await this.fresh();
+    await this.say(to, text, key, aboutHousehold);
+  }
+
   // ---------- Inbound ----------
 
   async handle(m: Inbound): Promise<void> {
@@ -77,6 +90,7 @@ export class Agent {
     });
     this.store.patch(m.handle, { spaceId: m.spaceId, agentId: m.agentId });
     const replyKey = `reply:${m.id}`;
+    if (await this.voice?.answerPending(m.handle, m.text)) return;
 
     if (/^\s*(stop|unsubscribe|quit|cancel|end|alto)\s*$/i.test(m.text)) {
       await this.sendRaw({ ...contact, spaceId: m.spaceId, agentId: m.agentId }, copy.stopped(contact.language), replyKey);
@@ -127,6 +141,12 @@ export class Agent {
     }
     const after = await this.fresh();
     await this.acknowledge(after, me, valid, replyKey);
+    const asked = valid.find((c) => c.subjectHouseholdId === me.householdId && c.kind === 'needs_help');
+    if (asked && this.voice) {
+      const h = this.household(after, asked.subjectHouseholdId)!;
+      const prompted = after.checkins.find((c) => c.householdId === h.id)?.promptedAtMicros ?? 0;
+      await this.voice.speakFor(me, h, this.place(after, h), m.text, `speak-for-${prompted}-${h.id}`);
+    }
   }
 
   private async quietDay(me: Contact, _text: string, capabilities: string[], reply: string, key: string) {
@@ -270,7 +290,14 @@ export class Agent {
       const h = this.household(s, ci.householdId);
       if (!h) continue;
       for (const c of this.store.contacts()) {
-        if (c.householdId === h.id) await this.say(c, copy.checkin(c.language as Language, kind), `checkin:${ci.promptedAtMicros}:${c.handle}`, null);
+        if (c.householdId === h.id) {
+          const key = `checkin:${ci.promptedAtMicros}:${c.handle}`;
+          await this.say(c, copy.checkin(c.language as Language, kind), key, null);
+          if (!this.checkinSentAt.has(key)) this.checkinSentAt.set(key, this.now());
+          if (this.voice && this.now() - this.checkinSentAt.get(key)! > this.ringAfterMs) {
+            await this.voice.ring(c, h, kind, `ring-${ci.promptedAtMicros}-${h.id}`);
+          }
+        }
         if (c.careFor.includes(h.id)) await this.say(c, copy.circleCheck(c.language as Language, h.name), `circle:${ci.promptedAtMicros}:${h.id}:${c.handle}`, null);
       }
     }

@@ -20,7 +20,13 @@ const db = new SpacetimeHttp(URL_, DB, id.token);
 const store = new Store(null);
 const outbox: { to: string; text: string }[] = [];
 let clock = 1_000_000;
-const agent = new Agent({ db, store, understand: async (c) => keywordUnderstand(c), now: () => clock, send: async (to: Contact, text: string) => { outbox.push({ to: to.name, text }); } });
+const calls: string[] = [];
+const voice = {
+  speakFor: async (c: Contact) => { calls.push(`speak:${c.name}`); },
+  ring: async (c: Contact) => { calls.push(`ring:${c.name}`); },
+  answerPending: async () => false,
+};
+const agent = new Agent({ db, store, voice, understand: async (c) => keywordUnderstand(c), now: () => clock, send: async (to: Contact, text: string) => { outbox.push({ to: to.name, text }); } });
 
 let s = await db.snapshot();
 const byName = (n: string) => s.households.find((h) => h.name === n)!;
@@ -55,7 +61,9 @@ await agent.tick();
 assert.match(last('Ana'), /Are you OK/); assert.match(last('Jay'), /Are you OK/);
 assert.match(last('Elena'), /trying to reach Mrs\. Alvarez/);
 const before = outbox.length; await agent.tick(); assert.equal(outbox.length, before, 'a second tick must not text anyone again');
-step('check-ins sent once');
+clock += 60_000; await agent.tick();
+assert.ok(calls.includes('ring:Ana'), 'someone silent past the window gets a call');
+step('check-ins sent once, phone rings after silence');
 
 await text('+15550000002', "I'm ok");
 assert.equal((await account(brooks.id))?.status, 'accounted'); assert.match(last('Jay'), /accounted for/);
@@ -75,7 +83,8 @@ s = await db.snapshot();
 const task = s.tasks.find((t) => t.householdId === alvarez.id)!;
 assert.equal(task.state, 'proposed');
 const asked = outbox.length; await agent.tick(); assert.equal(outbox.length, asked, 'nobody is asked before a human approves');
-step('help request proposes a task and waits for a person');
+assert.ok(calls.includes('speak:Ana'), 'a call is placed for someone asking for help');
+step('help request places a call and proposes a task that waits for a person');
 
 await db.approveTask(task.id, 'Dispatcher');
 await agent.tick();
