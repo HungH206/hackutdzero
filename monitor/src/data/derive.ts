@@ -92,3 +92,59 @@ export function agoText(micros: number, nowMicros: number): string {
 }
 
 export const bandOf = (h: Household, p: Priority | undefined) => (!h.hasSensor ? 'unknown' : (p?.band ?? 'low'));
+
+// ---------- Analytics helpers (counts and times only) ----------
+
+export interface CurvePoint {
+  t: number;
+  accounted: number;
+}
+
+/** "Found curve": households accounted for over time since the first confirmed event. */
+export function foundCurve(s: Snapshot, now: number): CurvePoint[] {
+  const start = s.disasters.filter((d) => d.active).reduce((m, d) => (m === 0 || d.confirmedAtMicros < m ? d.confirmedAtMicros : m), 0);
+  if (!start) return [];
+  const times = s.households
+    .filter((h) => h.finalState !== 'unresolved' && h.finalAtMicros >= start)
+    .map((h) => h.finalAtMicros)
+    .sort((a, b) => a - b);
+  const pts: CurvePoint[] = [{ t: start, accounted: 0 }];
+  times.forEach((t, i) => pts.push({ t, accounted: i + 1 }));
+  pts.push({ t: Math.max(now, pts[pts.length - 1]!.t), accounted: times.length });
+  return pts;
+}
+
+/** Minutes from the event to each household's final state. */
+export function timesToFound(s: Snapshot): number[] {
+  const start = s.disasters.filter((d) => d.active).reduce((m, d) => (m === 0 || d.confirmedAtMicros < m ? d.confirmedAtMicros : m), 0);
+  if (!start) return [];
+  return s.households.filter((h) => h.finalState !== 'unresolved' && h.finalAtMicros >= start).map((h) => (h.finalAtMicros - start) / 6e7);
+}
+
+export const median = (xs: number[]) => {
+  if (!xs.length) return null;
+  const a = [...xs].sort((x, y) => x - y);
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m]! : (a[m - 1]! + a[m]!) / 2;
+};
+
+export function ladderFunnel(v: View): number[] {
+  const out = [0, 0, 0, 0, 0];
+  for (const h of v.households) {
+    const e = v.esc.get(h.id);
+    if (!e || e.step === 0) continue;
+    for (let s = 1; s <= e.step; s++) out[s]!++;
+  }
+  return out;
+}
+
+export function bandCounts(v: View) {
+  const c = { critical: 0, high: 0, guarded: 0, low: 0 };
+  for (const h of v.queue) {
+    const b = v.prio.get(h.id)?.band;
+    if (b && b in c) c[b as keyof typeof c]++;
+  }
+  return c;
+}
+
+export const fmtMin = (m: number | null) => (m === null ? '—' : m < 1 ? '<1 min' : `${m.toFixed(m < 10 ? 1 : 0)} min`);

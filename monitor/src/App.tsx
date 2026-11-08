@@ -1,36 +1,60 @@
-import { useEffect, useState } from 'react';
-import { Coverage } from './components/Coverage';
-import { DemoControls } from './components/DemoControls';
-import { Header } from './components/Header';
-import { HouseholdCard } from './components/HouseholdCard';
-import { LAYERS, PriorityMap, type Layer } from './components/PriorityMap';
-import { Queue } from './components/Queue';
-import { Timeline } from './components/Timeline';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useScenarioNow, useView } from './data/derive';
 import { useHeadcount } from './data/HeadcountProvider';
+import { Analytics } from './ui/Analytics';
+import { CommandDock, type DockHandle } from './ui/CommandDock';
+import { DemoPanel } from './ui/DemoPanel';
+import { DetailCard } from './ui/DetailCard';
+import { EventLog } from './ui/EventLog';
+import { Icon } from './ui/Icon';
+import { Legend } from './ui/Legend';
+import { MapCanvas, type Layer } from './ui/MapCanvas';
+import { QueuePanel } from './ui/QueuePanel';
+import { Rail, type ViewId } from './ui/Rail';
+import { Toasts, useAlerts } from './ui/Toasts';
+import { TopBar } from './ui/TopBar';
 
 export function App() {
   const { snapshot, actions, connection } = useHeadcount();
   const view = useView(snapshot);
   const now = useScenarioNow(snapshot.clockOffsetMicros);
+  // Deep links: ?view=analytics|log and ?h=<household id>.
+  const params = new URLSearchParams(window.location.search);
+  const [screen, setScreen] = useState<ViewId>(() => (['live', 'analytics', 'log'].includes(params.get('view') ?? '') ? (params.get('view') as ViewId) : 'live'));
   const [hovered, setHovered] = useState<number | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['hazard', 'outage', 'power']));
+  const [selected, setSelected] = useState<number | null>(() => (params.get('h') ? Number(params.get('h')) : null));
+  const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['heat', 'hazard', 'responders', 'outage', 'power']));
   const [error, setError] = useState<string | null>(null);
+  const dock = useRef<DockHandle>(null);
+  const alerts = useAlerts(snapshot.timeline);
+
+  // A selected household that no longer exists (after reset) closes the card.
+  const selectedId = selected !== null && view.hh.has(selected) ? selected : null;
+
+  const select = useCallback((id: number | null) => {
+    setSelected(id);
+    if (id !== null) setScreen('live');
+  }, []);
 
   useEffect(() => {
     if (!error) return;
-    const id = setTimeout(() => setError(null), 4000);
+    const id = setTimeout(() => setError(null), 5000);
     return () => clearTimeout(id);
   }, [error]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSelected(null);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setScreen('live');
+        requestAnimationFrame(() => dock.current?.focus());
+      } else if (e.key === 'Escape') setSelected(null);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const toggle = (l: Layer) =>
+  const toggleLayer = (l: Layer) =>
     setLayers((s) => {
       const n = new Set(s);
       if (n.has(l)) n.delete(l);
@@ -39,75 +63,86 @@ export function App() {
     });
 
   return (
-    <div className="app">
-      <Header
-        view={view}
-        now={now}
-        offsetMicros={snapshot.clockOffsetMicros}
-        connection={connection}
-        demo={<DemoControls view={view} actions={actions} onError={setError} />}
+    <div className={`app screen-${screen}${selectedId !== null ? ' has-detail' : ''}${view.disasterActive ? ' incident' : ''}`}>
+      <Rail
+        active={screen}
+        onChange={(v) => {
+          setScreen(v);
+          if (v === 'log') alerts.clearUnread();
+        }}
+        logCount={alerts.unread}
       />
-      <main className="main">
-        <section className="panel map-panel" aria-label="Live priority map">
-          <div className="panel-head">
-            <h2>Live priority map · Cedar Hollow (fictional)</h2>
-            <div className="layers">
-              {LAYERS.map((l) => (
-                <button key={l.id} className={`chip-toggle${layers.has(l.id) ? ' on' : ''}`} onClick={() => toggle(l.id)} aria-pressed={layers.has(l.id)}>
-                  {l.label}
-                </button>
-              ))}
-            </div>
+      <div className="stage">
+        <MapCanvas
+          view={view}
+          disasters={snapshot.disasters}
+          now={now}
+          layers={layers}
+          hovered={hovered}
+          selected={selectedId}
+          onHover={setHovered}
+          onSelect={select}
+          onToggleLayer={toggleLayer}
+        />
+        <TopBar
+          view={view}
+          now={now}
+          offsetMicros={snapshot.clockOffsetMicros}
+          connection={connection}
+          unread={alerts.unread}
+          onBell={() => {
+            alerts.clearUnread();
+            setScreen('log');
+          }}
+          onSearch={() => {
+            setScreen('live');
+            requestAnimationFrame(() => dock.current?.focus());
+          }}
+          demo={<DemoPanel view={view} actions={actions} onError={setError} />}
+        />
+        {screen === 'live' && (
+          <>
+            <QueuePanel view={view} now={now} hovered={hovered} selected={selectedId} onHover={setHovered} onSelect={select} />
+            {selectedId !== null && (
+              <DetailCard
+                key={selectedId}
+                id={selectedId}
+                view={view}
+                now={now}
+                overrides={snapshot.overrides}
+                timeline={snapshot.timeline}
+                actions={actions}
+                onClose={() => setSelected(null)}
+                onError={setError}
+              />
+            )}
+            <Legend />
+            <CommandDock ref={dock} view={view} snapshot={snapshot} actions={actions} onSelect={select} onError={setError} />
+          </>
+        )}
+        {screen !== 'live' && (
+          <div className="page">
+            {screen === 'analytics' ? (
+              <Analytics view={view} snapshot={snapshot} now={now} onSelect={select} />
+            ) : (
+              <EventLog rows={snapshot.timeline} view={view} onSelect={select} />
+            )}
           </div>
-          <div className="map-wrap">
-            <PriorityMap
-              view={view}
-              disasters={snapshot.disasters}
-              layers={layers}
-              hovered={hovered}
-              selected={selected}
-              onHover={setHovered}
-              onSelect={setSelected}
-            />
+        )}
+        <Toasts
+          toasts={alerts.toasts}
+          onDismiss={alerts.dismiss}
+          onOpen={(t) => {
+            alerts.dismiss(t.id);
+            if (t.householdId && view.hh.has(t.householdId)) select(t.householdId);
+          }}
+        />
+        {error && (
+          <div className="err-toast glass" role="alert">
+            <Icon name="alert" size={16} /> {error}
           </div>
-          <div className="map-legend">
-              <span><i style={{ background: 'var(--critical)' }} />75-100 critical</span>
-              <span><i style={{ background: 'var(--high)' }} />50-74 high</span>
-              <span><i style={{ background: 'var(--guarded)' }} />25-49 guarded</span>
-              <span><i style={{ background: 'var(--low)' }} />0-24 low</span>
-              <span>✓ found OK</span>
-              <span>A assisted</span>
-              <span>? unknown</span>
-              <span>1-10 rank · dashed = node offline</span>
-          </div>
-        </section>
-
-        <section className="panel side" aria-label="Priority queue">
-          <Queue view={view} now={now} hovered={hovered} selected={selected} onHover={setHovered} onSelect={setSelected} />
-          {selected !== null && (
-            <HouseholdCard
-              key={selected}
-              id={selected}
-              view={view}
-              now={now}
-              overrides={snapshot.overrides}
-              actions={actions}
-              onClose={() => setSelected(null)}
-              onError={setError}
-            />
-          )}
-        </section>
-
-        <div className="bottom">
-          <section className="panel" aria-label="Event timeline">
-            <Timeline rows={snapshot.timeline} onSelect={setSelected} />
-          </section>
-          <section className="panel" aria-label="Coverage and alerts">
-            <Coverage view={view} onSelect={setSelected} />
-          </section>
-        </div>
-      </main>
-      {error && <div className="toast" role="alert">{error}</div>}
+        )}
+      </div>
     </div>
   );
 }

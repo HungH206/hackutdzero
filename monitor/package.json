@@ -12,6 +12,8 @@
     "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb"
   },
   "dependencies": {
+    "@fontsource-variable/outfit": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "spacetimedb": "2.14.1"
