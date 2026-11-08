@@ -84,12 +84,14 @@ def main():
         hit = {n: s.value != idle[n] for n, s in sensors.items()}
 
         # Shock (or loud sound with it): a burst of hits spanning >= 2 s is sustained shaking.
-        if hit["shock"]:
+        # The shock module barely fires on this node; the sound sensor picks up the vibration strongly.
+        if hit["shock"] or hit["sound"]:
             shake_hits += 1; shake_last = t
             shake_start = shake_start or t
-        elif shake_start and t - shake_last > 0.8:
+        elif shake_start and t - shake_last > 1.5:
             dur = shake_last - shake_start
-            if dur >= 2.0:
+            print("shock burst %.1fs, %d hits" % (dur, shake_hits))
+            if dur >= 0.5:
                 g = min(2.0, 0.3 + shake_hits / 100.0)
                 print("shake %.1fs ~%.2fg" % (dur, g))
                 if call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "shake", "value": g, "durationS": round(dur, 1)}): beep(1)
