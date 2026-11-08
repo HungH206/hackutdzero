@@ -86,6 +86,21 @@ export class Agent {
     await this.say(to, text, key, aboutHousehold);
   }
 
+  /** A dispatcher's announcement to everyone who has joined. Same guard and per-person idempotency as every other message. */
+  async announce(text: string): Promise<{ sent: number; skipped: number }> {
+    await this.fresh();
+    const stamp = Date.now();
+    let sent = 0;
+    let skipped = 0;
+    for (const c of this.store.contacts()) {
+      const key = `announce:${stamp}:${c.handle}`;
+      await this.say(c, text, key, null);
+      if (this.store.wasSent(key)) sent++;
+      else skipped++;
+    }
+    return { sent, skipped };
+  }
+
   // ---------- Inbound ----------
 
   async handle(m: Inbound): Promise<void> {

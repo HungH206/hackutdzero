@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startAdmin } from './admin.ts';
 import { Agent } from './agent.ts';
+import { Briefing, draftAnnouncement } from './briefing.ts';
 import { geminiLlm } from './llm.ts';
 import { assignLine, photonClient, photonSend, subscribe } from './photon.ts';
 import { SpacetimeHttp } from './spacetime.ts';
@@ -17,7 +18,7 @@ if (!env.SPACETIME_TOKEN) throw new Error('Set SPACETIME_TOKEN. Run scripts/setu
 const store = new Store(path.join(here, '../data/state.json'));
 const db = new SpacetimeHttp(env.SPACETIME_URL ?? 'http://127.0.0.1:3000', env.SPACETIME_DB ?? 'headcount', env.SPACETIME_TOKEN);
 
-const llm = env.GEMINI_API_KEY ? geminiLlm(env.GEMINI_API_KEY, env.HEADCOUNT_MODEL ?? 'gemini-3.8-flash') : null;
+const llm = env.GEMINI_API_KEY ? geminiLlm(env.GEMINI_API_KEY, env.HEADCOUNT_MODEL ?? 'gemini-3.5-flash') : null;
 const understand: Understand = llm
   ? modelUnderstand(llm)
   : async (ctx) => keywordUnderstand(ctx);
@@ -41,7 +42,37 @@ if (!voice) console.warn('Voice is off. Set RETELL_API_KEY, RETELL_AGENT_ID, VOI
 const agent: Agent = new Agent({ db, store, send, understand, ...(voice ? { voice } : {}) });
 if (voice) startVoiceServer(voice, env.RETELL_API_KEY!, Number(env.VOICE_PORT ?? 8788));
 if (live) subscribe(env.PHOTON_PROJECT_ID!, env.PHOTON_API_KEY!, store, (m) => agent.handle(m));
-startAdmin({ port: Number(env.ADMIN_PORT ?? 8787), db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null });
+const briefing = new Briefing(llm);
+
+// Chat test: the same agent logic, but replies are captured instead of texted, so no real phone gets a message.
+let captured: { to: string; text: string }[] = [];
+let lastSource = 'none';
+const sandbox = new Agent({
+  db, store,
+  send: async (to, text) => { captured.push({ to: to.name, text }); },
+  understand: async (ctx) => { const u = await understand(ctx); lastSource = u.source; return u; },
+});
+let chatQueue: Promise<unknown> = Promise.resolve();
+const chat = (handle: string, text: string) => {
+  const run = async () => {
+    const person = store.contact(handle);
+    if (!person) throw new Error('Unknown person.');
+    const before = { spaceId: person.spaceId, agentId: person.agentId };
+    captured = [];
+    lastSource = 'none';
+    try {
+      await sandbox.handle({ id: `chat:${Date.now()}:${Math.random().toString(36).slice(2)}`, handle, spaceId: before.spaceId ?? 'chat-test', agentId: before.agentId ?? 'chat-test', text });
+    } finally {
+      store.patch(handle, before); // Never leave the test ids on a real contact.
+    }
+    return { replies: captured, source: lastSource };
+  };
+  const result = chatQueue.then(run, run);
+  chatQueue = result.catch(() => undefined);
+  return result;
+};
+
+startAdmin({ port: Number(env.ADMIN_PORT ?? 8787), db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text) => agent.announce(text), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
 
 let running = false;
 setInterval(async () => {
