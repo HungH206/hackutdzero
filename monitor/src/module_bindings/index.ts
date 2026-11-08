@@ -35,9 +35,13 @@ import {
 
 // Import all reducer arg schemas
 import AddOperatorReducer from "./add_operator_reducer";
+import ApproveHelpTaskReducer from "./approve_help_task_reducer";
 import HeartbeatReducer from "./heartbeat_reducer";
+import LinkAgentHouseholdReducer from "./link_agent_household_reducer";
 import OverridePriorityReducer from "./override_priority_reducer";
+import ProposeHelpTaskReducer from "./propose_help_task_reducer";
 import RecomputeHpiReducer from "./recompute_hpi_reducer";
+import RecordClaimReducer from "./record_claim_reducer";
 import RegisterNodeReducer from "./register_node_reducer";
 import RemoveOperatorReducer from "./remove_operator_reducer";
 import ReportEventReducer from "./report_event_reducer";
@@ -49,15 +53,19 @@ import SimPowerLossReducer from "./sim_power_loss_reducer";
 import SimQuakeReducer from "./sim_quake_reducer";
 import SimResetReducer from "./sim_reset_reducer";
 import SubmitCheckinReducer from "./submit_checkin_reducer";
+import UpdateHelpTaskReducer from "./update_help_task_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import AccountingRow from "./accounting_table";
 import BuildingRow from "./building_table";
 import CheckinRow from "./checkin_table";
 import ClockRow from "./clock_table";
 import DisasterRow from "./disaster_table";
 import EscalationRow from "./escalation_table";
+import HeadcountSummaryRow from "./headcount_summary_table";
+import HelpTaskRow from "./help_task_table";
 import HouseholdRow from "./household_table";
 import NodeRow from "./node_table";
 import OverrideLogRow from "./override_log_table";
@@ -69,6 +77,17 @@ import TimelineRow from "./timeline_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  accounting: __table({
+    name: 'accounting',
+    indexes: [
+      { accessor: 'householdId', name: 'accounting_household_id_idx_btree', algorithm: 'btree', columns: [
+        'householdId',
+      ] },
+    ],
+    constraints: [
+      { name: 'accounting_household_id_key', constraint: 'unique', columns: ['householdId'] },
+    ],
+  }, AccountingRow),
   building: __table({
     name: 'building',
     indexes: [
@@ -124,6 +143,31 @@ const tablesSchema = __schema({
       { name: 'escalation_household_id_key', constraint: 'unique', columns: ['householdId'] },
     ],
   }, EscalationRow),
+  headcountSummary: __table({
+    name: 'headcount_summary',
+    indexes: [
+      { accessor: 'id', name: 'headcount_summary_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'headcount_summary_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, HeadcountSummaryRow),
+  helpTask: __table({
+    name: 'help_task',
+    indexes: [
+      { accessor: 'householdId', name: 'help_task_household_id_idx_btree', algorithm: 'btree', columns: [
+        'householdId',
+      ] },
+      { accessor: 'id', name: 'help_task_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'help_task_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, HelpTaskRow),
   household: __table({
     name: 'household',
     indexes: [
@@ -201,9 +245,13 @@ const tablesSchema = __schema({
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
   __reducerSchema("add_operator", AddOperatorReducer),
+  __reducerSchema("approve_help_task", ApproveHelpTaskReducer),
   __reducerSchema("heartbeat", HeartbeatReducer),
+  __reducerSchema("link_agent_household", LinkAgentHouseholdReducer),
   __reducerSchema("override_priority", OverridePriorityReducer),
+  __reducerSchema("propose_help_task", ProposeHelpTaskReducer),
   __reducerSchema("recompute_hpi", RecomputeHpiReducer),
+  __reducerSchema("record_claim", RecordClaimReducer),
   __reducerSchema("register_node", RegisterNodeReducer),
   __reducerSchema("remove_operator", RemoveOperatorReducer),
   __reducerSchema("report_event", ReportEventReducer),
@@ -215,6 +263,7 @@ const reducersSchema = __reducers(
   __reducerSchema("sim_quake", SimQuakeReducer),
   __reducerSchema("sim_reset", SimResetReducer),
   __reducerSchema("submit_checkin", SubmitCheckinReducer),
+  __reducerSchema("update_help_task", UpdateHelpTaskReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

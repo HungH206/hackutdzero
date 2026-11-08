@@ -133,7 +133,17 @@ export interface Snapshot {
   priorities: Priority[];
   overrides: OverrideLog[];
   timeline: TimelineRow[];
+  /** Written by the text agent. Missing on the in-process local fallback, so every reader must default to empty. */
+  accounts?: AccountRow[];
+  helpTasks?: HelpTaskRow[];
+  summaries?: SummaryRow[];
 }
+
+/** Who is accounted for, from what people reported by text. */
+export interface AccountRow { householdId: number; status: string; sources: number; note: string }
+/** A neighbor check. A dispatcher has to approve it before anyone is asked. */
+export interface HelpTaskRow { id: number; householdId: number; state: string; helperLabel: string; reason: string; approvedBy: string }
+export interface SummaryRow { total: number; accounted: number; reported: number; needsHelp: number; conflict: number; unaccounted: number; eventActive: boolean }
 
 export const emptySnapshot: Snapshot = {
   clockOffsetMicros: 0,
@@ -159,6 +169,8 @@ export interface Actions {
   simCommsOutage(x: number, y: number, radius: number): Promise<void>;
   simFastForward(minutes: number): Promise<void>;
   simReset(): Promise<void>;
+  /** Dispatcher only. Lets the agent ask the proposed neighbor. */
+  approveHelpTask(id: number, by: string): Promise<void>;
 }
 
 export type SourceKind = 'spacetimedb' | 'local';

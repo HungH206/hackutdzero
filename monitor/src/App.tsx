@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScenarioNow, useView } from './data/derive';
 import { useHeadcount } from './data/HeadcountProvider';
+import { AgentPanel } from './ui/agent/AgentPanel';
 import { Analytics } from './ui/Analytics';
 import { CommandDock, type DockHandle } from './ui/CommandDock';
 import { DemoPanel } from './ui/DemoPanel';
@@ -112,6 +113,7 @@ export function App() {
   return (
     <div className={`app py-app screen-${screen === 'map' ? 'live' : screen}${selectedId !== null ? ' has-detail' : ''}${view.disasterActive ? ' incident' : ''}`}>
       <div className="py-bg" aria-hidden="true" />
+      <AgentPanel />
 
       {screen === 'graph' && (
         <CommandView

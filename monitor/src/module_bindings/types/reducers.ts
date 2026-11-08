@@ -7,9 +7,13 @@ import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
 import AddOperatorReducer from "../add_operator_reducer";
+import ApproveHelpTaskReducer from "../approve_help_task_reducer";
 import HeartbeatReducer from "../heartbeat_reducer";
+import LinkAgentHouseholdReducer from "../link_agent_household_reducer";
 import OverridePriorityReducer from "../override_priority_reducer";
+import ProposeHelpTaskReducer from "../propose_help_task_reducer";
 import RecomputeHpiReducer from "../recompute_hpi_reducer";
+import RecordClaimReducer from "../record_claim_reducer";
 import RegisterNodeReducer from "../register_node_reducer";
 import RemoveOperatorReducer from "../remove_operator_reducer";
 import ReportEventReducer from "../report_event_reducer";
@@ -21,11 +25,16 @@ import SimPowerLossReducer from "../sim_power_loss_reducer";
 import SimQuakeReducer from "../sim_quake_reducer";
 import SimResetReducer from "../sim_reset_reducer";
 import SubmitCheckinReducer from "../submit_checkin_reducer";
+import UpdateHelpTaskReducer from "../update_help_task_reducer";
 
 export type AddOperatorParams = __Infer<typeof AddOperatorReducer>;
+export type ApproveHelpTaskParams = __Infer<typeof ApproveHelpTaskReducer>;
 export type HeartbeatParams = __Infer<typeof HeartbeatReducer>;
+export type LinkAgentHouseholdParams = __Infer<typeof LinkAgentHouseholdReducer>;
 export type OverridePriorityParams = __Infer<typeof OverridePriorityReducer>;
+export type ProposeHelpTaskParams = __Infer<typeof ProposeHelpTaskReducer>;
 export type RecomputeHpiParams = __Infer<typeof RecomputeHpiReducer>;
+export type RecordClaimParams = __Infer<typeof RecordClaimReducer>;
 export type RegisterNodeParams = __Infer<typeof RegisterNodeReducer>;
 export type RemoveOperatorParams = __Infer<typeof RemoveOperatorReducer>;
 export type ReportEventParams = __Infer<typeof ReportEventReducer>;
@@ -37,4 +46,5 @@ export type SimPowerLossParams = __Infer<typeof SimPowerLossReducer>;
 export type SimQuakeParams = __Infer<typeof SimQuakeReducer>;
 export type SimResetParams = __Infer<typeof SimResetReducer>;
 export type SubmitCheckinParams = __Infer<typeof SubmitCheckinReducer>;
+export type UpdateHelpTaskParams = __Infer<typeof UpdateHelpTaskReducer>;
 
