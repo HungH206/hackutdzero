@@ -473,3 +473,11 @@
 .py-live-row.kind-sound.tripped .py-live-pin b { color: var(--label); }
 .py-live-row.kind-sound.flash { animation: none; }
 .py-live-row.kind-sound.flash::before { display: none; }
+
+/* Shock active: red all around instead of an orange left stripe */
+.py-shock { border: 2px solid transparent; }
+.py-shock.active { background: var(--critical-tint); border: 2px solid var(--critical); }
+.py-shock.active .py-shock-t svg { color: var(--critical); }
+.py-shock.active .py-shock-badge { background: var(--critical); color: var(--surface-1); }
+.py-shock.active .py-shock-trace rect.on { fill: var(--critical); }
+.py-shock.active .py-shock-f { color: var(--critical-ink); }
