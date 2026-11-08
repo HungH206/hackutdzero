@@ -352,3 +352,7 @@ The neighborhood agent's **Draft with Gemini** button can draft without the Phot
 Production build and six mocked endpoint checks passed. Live Gemini generation and Vercel deployment remain unverified until a server key is configured.
 
 Gemini draft diagnostics: the request allows 45 seconds and the Vercel function is configured for 60 seconds. A live test on Nov 8 reached Google but returned 503 high demand; successful generation remains unverified. Busy-model, quota, timeout and transport failures have separate messages. Retry busy-model responses later or configure another model available to the project.
+
+### Photon sending from the hosted monitor
+
+The monitor can connect to a separately running Photon agent using `VITE_AGENT_URL` and a per-tab dispatcher credential. See [Photon hosting](photon-agent/HOSTING.md). The agent supports authenticated admin access, an unauthenticated liveness check, a persistent state path and a platform port. Messaging is disabled unless `PHOTON_SEND_ENABLED=true`. Agent typecheck, 70 tests and monitor build pass. Hosted connection and real-message delivery are not yet verified; Maincloud agent identity provisioning awaits approval.

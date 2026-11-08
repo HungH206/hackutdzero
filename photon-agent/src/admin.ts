@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { authorized } from './admin-auth.ts';
 import type { Agent } from './agent.ts';
 import type { Store } from './store.ts';
 import type { Db, Language, Snapshot } from './types.ts';
@@ -8,6 +9,8 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export interface AdminOptions {
   port: number;
+  host?: string;
+  adminToken?: string;
   db: Db;
   store: Store;
   agent: Agent;
@@ -42,7 +45,7 @@ const PAGE = (body: string, refresh = true) => `<!doctype html><meta charset="ut
 
 interface Exchange { who: string; text: string; source: string; replies: { to: string; text: string }[] }
 
-export function startAdmin({ port, db, store, assign, chat, announce, briefing, draft, allowedOrigins = [] }: AdminOptions) {
+export function startAdmin({ port, db, store, assign, chat, announce, briefing, draft, allowedOrigins = [], host = '127.0.0.1', adminToken }: AdminOptions) {
   const history: Exchange[] = [];
   let lastAnnounce = '';
   const own = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
@@ -58,11 +61,19 @@ export function startAdmin({ port, db, store, assign, chat, announce, briefing, 
         }
         res.setHeader('access-control-allow-origin', origin);
         res.setHeader('access-control-allow-private-network', 'true');
-        res.setHeader('access-control-allow-headers', 'content-type, accept');
+        res.setHeader('access-control-allow-headers', 'content-type, accept, authorization');
         res.setHeader('vary', 'Origin');
       }
       if (req.method === 'OPTIONS') {
         res.writeHead(204).end();
+        return;
+      }
+      if (req.method === 'GET' && req.url === '/healthz') {
+        res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
+        return;
+      }
+      if (!authorized(req.headers.authorization, adminToken)) {
+        res.writeHead(401, { 'content-type': 'application/json', 'www-authenticate': 'Basic realm="Headcount dispatcher"' }).end('{"error":"Dispatcher authentication required."}');
         return;
       }
       const wantsJson = (req.headers.accept ?? '').includes('application/json');
@@ -153,5 +164,5 @@ ${announceForm}
     } catch (error) {
       res.writeHead(400, { 'content-type': 'text/plain' }).end(error instanceof Error ? error.message : 'Failed');
     }
-  }).listen(port, '127.0.0.1', () => console.log(`Dispatcher page: http://127.0.0.1:${port}`));
+  }).listen(port, host, () => console.log(`Dispatcher page: http://127.0.0.1:${port}`));
 }

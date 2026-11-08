@@ -15,7 +15,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 if (!env.SPACETIME_TOKEN) throw new Error('Set SPACETIME_TOKEN. Run scripts/setup-local.sh first.');
 
-const store = new Store(path.join(here, '../data/state.json'));
+const adminHost = env.ADMIN_HOST ?? '127.0.0.1';
+if (adminHost !== '127.0.0.1' && !env.ADMIN_TOKEN) throw new Error('Set ADMIN_TOKEN before exposing the dispatcher server.');
+const store = new Store(env.STATE_FILE ?? path.join(here, '../data/state.json'));
+const messagingEnabled = env.PHOTON_SEND_ENABLED === 'true';
 const db = new SpacetimeHttp(env.SPACETIME_URL ?? 'http://127.0.0.1:3000', env.SPACETIME_DB ?? 'headcount', env.SPACETIME_TOKEN);
 
 const llm = env.GEMINI_API_KEY ? geminiLlm(env.GEMINI_API_KEY, env.HEADCOUNT_MODEL ?? 'gemini-3.5-flash') : null;
@@ -24,12 +27,12 @@ const understand: Understand = llm
   : async (ctx) => keywordUnderstand(ctx);
 if (!llm) console.warn('GEMINI_API_KEY is not set. Using keyword matching.');
 
-const live = Boolean(env.PHOTON_API_KEY && env.PHOTON_PROJECT_ID);
+const live = messagingEnabled && Boolean(env.PHOTON_API_KEY && env.PHOTON_PROJECT_ID);
 const photon = live ? photonClient(env.PHOTON_API_KEY!) : null;
 const send: Send = photon ? photonSend(photon, env.PHOTON_PROJECT_ID!) : async (to, text) => console.log(`(not sent, no Photon key) to ${to.name}: ${text}`);
-if (!live) console.warn('PHOTON_API_KEY or PHOTON_PROJECT_ID is not set. Texts are printed only.');
+if (!live) console.warn('Messaging is disabled. Texts are printed only. Enable PHOTON_SEND_ENABLED only for an authorized phone test.');
 
-const voice = env.RETELL_API_KEY && env.RETELL_AGENT_ID && env.VOICE_FROM_NUMBER && env.DISPATCHER_PHONE
+const voice = messagingEnabled && env.RETELL_API_KEY && env.RETELL_AGENT_ID && env.VOICE_FROM_NUMBER && env.DISPATCHER_PHONE
   ? new Voice({
     apiKey: env.RETELL_API_KEY, agentId: env.RETELL_AGENT_ID, from: env.VOICE_FROM_NUMBER, dispatcher: env.DISPATCHER_PHONE, store, db,
     translate: llm ? modelTranslate(llm) : async (text) => text,
@@ -73,7 +76,7 @@ const chat = (handle: string, text: string) => {
   return result;
 };
 
-startAdmin({ port: Number(env.ADMIN_PORT ?? 8787), db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text, building) => agent.announce(text, building), allowedOrigins: (env.ADMIN_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',').map((o) => o.trim()).filter(Boolean), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
+startAdmin({ port: Number(env.PORT ?? env.ADMIN_PORT ?? 8787), host: adminHost, adminToken: env.ADMIN_TOKEN, db, store, agent, assign: photon ? (h) => assignLine(photon, env.PHOTON_PROJECT_ID!, h) : null, chat, announce: (text, building) => agent.announce(text, building), allowedOrigins: (env.ADMIN_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',').map((o) => o.trim()).filter(Boolean), briefing: (s) => briefing.get(s), draft: async () => draftAnnouncement(llm, await db.snapshot()) });
 
 let running = false;
 setInterval(async () => {
