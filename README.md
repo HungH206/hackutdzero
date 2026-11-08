@@ -187,6 +187,7 @@ The map on the monitor dashboard shows, in real time, which homes need urgent ca
 - All household locations are **synthetic**, placed in a fictional neighborhood. No real addresses or people.
 - Planned: a web map library (MapLibre or Leaflet). Because venue and hotspot networks can be unreliable, we plan an **offline fallback** basemap so the demo does not depend on internet tile servers.
 - The CBRE dashboard reuses the map at **building level**: one pin per property, sized by estimated dollar impact.
+- The home screen shows the same synthetic neighborhood as a **3D model** (three.js, bundled, so it works offline). Building heights are exaggerated about 4x so floors read from above; footprints and positions are to scale. Pins, routes and hazards come straight from the server rows, and the model does no scoring. Without WebGL it falls back to a flat map.
 
 ## Fairness by design
 
@@ -236,7 +237,7 @@ Update this table honestly before submitting.
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
 | SpacetimeDB module (tables and reducers) | Built in `/spacetimedb`; 85 automated tests. Published to **Maincloud `rescuedb`** on Nov 8, 2026, with 40 synthetic households. The existing `rescuegrid-dev` database was left untouched. **20/20 live SDK checks passed** against Maincloud (sync, authorization, token reuse, scoring and escalation). |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
-| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
+| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: 3D model of the neighborhood with the dispatch queue (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
 | In-house wall screen (M5GO) | Planned |
 | Phone web app | Planned |
@@ -311,9 +312,9 @@ The walkthrough for the primary demo, an earthquake at Alder Court, is in [`docs
 
 Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
 
-One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 network graph, 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics. 5186 CBRE is optional and only opens with `-- --all`. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
+One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 main dashboard (3D neighborhood model), 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics. 5186 CBRE is optional and only opens with `-- --all`. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
 
-Screens and deep links: `/` network graph, `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
+Screens and deep links: `/` main dashboard (3D model of Cedar Hollow with the dispatch queue; falls back to a flat map without WebGL), `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
 
 ### CBRE view (estimate model, deprioritized)
 

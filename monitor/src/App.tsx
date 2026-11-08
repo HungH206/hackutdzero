@@ -14,14 +14,13 @@ import { Analysis } from './ui/py/Analysis';
 import { concernsOf } from './ui/py/concerns';
 import { PyDetail } from './ui/py/Detail';
 import { Drill, type Cat } from './ui/py/Drill';
-import { Graph, type GraphFilter } from './ui/py/Graph';
+import type { GraphFilter } from './ui/py/Graph';
 import { Header, type Screen } from './ui/py/Header';
-import { PyLegend } from './ui/py/Legend';
-import { TimeRail } from './ui/py/TimeRail';
 import { Toasts, useAlerts } from './ui/Toasts';
 import { portView } from './dashboards';
 import { Houses } from './ui/houses/Houses';
 import { Overview } from './ui/overview/Overview';
+import { CommandView } from './ui/command/CommandView';
 
 const SCREENS: Screen[] = ['overview', 'graph', 'tree', 'houses', 'map', 'analytics', 'log'];
 
@@ -115,15 +114,21 @@ export function App() {
       <div className="py-bg" aria-hidden="true" />
 
       {screen === 'graph' && (
-        <>
-          <Graph view={view} zoom={zoom} filter={filter} selected={selectedId} onSelect={select} onOpenBuilding={(id) => {
+        <CommandView
+          view={view}
+          snapshot={snapshot}
+          now={now}
+          zoom={zoom}
+          filter={filter}
+          selected={selectedId}
+          onSelect={select}
+          attention={analysisOpen && view.disasterActive && concerns.length > 0 ? <Analysis concerns={concerns} onSelect={select} onClose={() => setAnalysisOpen(false)} /> : null}
+          onOpenBuilding={(id) => {
             setBuildingId(id);
             setCat(null);
             setScreen('tree');
-          }} />
-          <TimeRail snapshot={snapshot} now={now} />
-          <PyLegend view={view} updates={snapshot.timeline.length} />
-        </>
+          }}
+        />
       )}
       {screen === 'tree' && (
         <Drill
@@ -141,7 +146,6 @@ export function App() {
       )}
       {screen === 'graph' && (
         <div className={`py-bottom${selectedId !== null ? ' shifted' : ''}`}>
-          {analysisOpen && view.disasterActive && concerns.length > 0 && <Analysis concerns={concerns} onSelect={select} onClose={() => setAnalysisOpen(false)} />}
           {dockEl}
         </div>
       )}
