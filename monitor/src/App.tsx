@@ -19,6 +19,7 @@ import { Header, type Screen } from './ui/py/Header';
 import { PyLegend } from './ui/py/Legend';
 import { TimeRail } from './ui/py/TimeRail';
 import { Toasts, useAlerts } from './ui/Toasts';
+import { portView } from './dashboards';
 import { Houses } from './ui/houses/Houses';
 import { Overview } from './ui/overview/Overview';
 
@@ -31,7 +32,10 @@ export function App() {
 
   // Deep links: ?view=graph|tree|map|analytics|log, ?h=<household id>, ?b=<building id>.
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const [screen, setScreen] = useState<Screen>(() => (SCREENS.includes(params.get('view') as Screen) ? (params.get('view') as Screen) : 'graph'));
+  const [screen, setScreen] = useState<Screen>(() => {
+    const v = params.get('view') ?? portView();
+    return SCREENS.includes(v as Screen) ? (v as Screen) : 'graph';
+  });
   const [selected, setSelected] = useState<number | null>(() => (params.get('h') ? Number(params.get('h')) : null));
   const [buildingId, setBuildingId] = useState(() => Number(params.get('b') ?? 0));
   const [cat, setCat] = useState<Cat | null>(null);

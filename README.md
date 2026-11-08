@@ -285,6 +285,8 @@ npm run dev         # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .e
 
 Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
 
+One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 network graph, 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics, 5186 CBRE. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
+
 Screens and deep links: `/` network graph, `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
 
 ### CBRE view (estimate model)

@@ -61,7 +61,7 @@ export function CbreApp() {
           <button role="tab" aria-selected className="on">
             Portfolio
           </button>
-          <a role="tab" href="/" className="">
+          <a role="tab" href="/?view=graph" className="">
             Dispatch
           </a>
         </div>
@@ -172,7 +172,7 @@ export function CbreApp() {
                 {fmtUsd(totalRisk)} revenue · {fmtUsd(totalRepair)} repairs
               </small>
             </div>
-            <a className="cb-btn light" href="/">
+            <a className="cb-btn light" href="/?view=graph">
               Open dispatch console <Icon name="globe" size={16} />
             </a>
             <a className="cb-btn ghost" href="#buildings">

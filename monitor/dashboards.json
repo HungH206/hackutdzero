@@ -1,0 +1,12 @@
+{
+  "devPort": 5179,
+  "dashboards": [
+    { "port": 5180, "view": "graph", "label": "Network graph (main)" },
+    { "port": 5181, "view": "overview", "label": "Operations overview" },
+    { "port": 5182, "view": "houses", "label": "Houses" },
+    { "port": 5183, "view": "map", "label": "Live map" },
+    { "port": 5184, "view": "tree", "label": "Building view" },
+    { "port": 5185, "view": "analytics", "label": "Analytics" },
+    { "port": 5186, "view": "cbre", "label": "CBRE property operations" }
+  ]
+}

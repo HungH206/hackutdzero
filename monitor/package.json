@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "dev:local": "HEADCOUNT_SOURCE=local vite --host",
+    "dashboards": "node scripts/dashboards.mjs",
+    "dashboards:live": "HEADCOUNT_SOURCE=spacetimedb node scripts/dashboards.mjs",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host",
