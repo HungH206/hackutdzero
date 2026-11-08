@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   const hazards = [...new Set((Array.isArray(input?.hazards) ? input.hazards.slice(0, 10) : [])
     .filter((kind) => ['quake', 'fire'].includes(kind)))];
   try {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = (process.env.GEMINI_MODEL?.trim() || 'gemini-flash-latest').replace(/^models\//, '');
     const result = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
@@ -29,7 +29,15 @@ export default async function handler(req, res) {
         generationConfig: { maxOutputTokens: 256, temperature: 0.2 },
       }),
     });
-    if (!result.ok) return res.status(502).json({ error: `Gemini request failed (${result.status}). Check the server API key, model access and quota.` });
+    if (!result.ok) {
+      const problem = await result.json().catch(() => null);
+      const detail = typeof problem?.error?.message === 'string'
+        ? problem.error.message.split(key).join('[redacted]').slice(0, 500) : '';
+      const hint = result.status === 404
+        ? 'Set GEMINI_MODEL to gemini-flash-latest or a generateContent model available to your project, then redeploy.'
+        : 'Check the server API key, model access and quota.';
+      return res.status(502).json({ error: `Gemini request failed (${result.status}, model ${model}). ${hint}${detail ? ` Google: ${detail}` : ''}` });
+    }
     const data = await result.json();
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('').trim();
     if (!text || text.length > 600 || !text.startsWith('SIMULATION')) {

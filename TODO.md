@@ -107,3 +107,5 @@ Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in
 - [ ] That the demo network (phone hotspot) lets all devices reach the backend
 
 - [x] [Codex] Implement independent Vercel Gemini draft endpoint; build and six mocked checks pass. Deployment and live API key verification pending.
+
+- [x] [Codex] Replace restricted Gemini 2.5 draft default with latest Flash alias; normalize model names and expose sanitized provider errors. Live Vercel key verification pending.
