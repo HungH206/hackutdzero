@@ -1,0 +1,139 @@
+import csv, sys, time
+from collections import deque
+from datetime import datetime
+from gpiozero import DigitalInputDevice, OutputDevice
+
+NODE_ID = "node-1"
+PINS = {"flame": 22, "heat": 27, "shock": 24, "sound": 17, "motion": 23}
+LABELS = {"flame": "Flame", "heat": "Heat", "shock": "Shock/Quake",
+          "sound": "Loud noise", "motion": "Person/motion"}
+WEIGHTS = {"flame": 45, "heat": 30, "shock": 25, "sound": 10}  # risk points at full activity
+HALF_LIFE = {"flame": 8, "heat": 20, "shock": 6, "sound": 4}   # seconds to fade by half
+OCCUPIED_FOR = 60   # seconds after last motion we still assume someone is there
+HOLD_ALERT = 10     # an alert level stays at least this long
+ORDER = ["SAFE", "WATCH", "WARNING", "EMERGENCY"]
+
+RESET, BOLD = "\033[0m", "\033[1m"
+COLORS = {"SAFE": "\033[42;30m", "WATCH": "\033[43;30m",
+          "WARNING": "\033[48;5;208;30m", "EMERGENCY": "\033[41;97m"}
+
+sensors = {n: DigitalInputDevice(p, pull_up=False) for n, p in PINS.items()}
+buzzer = OutputDevice(25)
+
+print("Warming up PIR (30s)... stay out of its view")
+time.sleep(30)
+idle = {n: s.value for n, s in sensors.items()}
+idle["motion"] = 0
+
+activity = {n: 0.0 for n in WEIGHTS}
+last_seen = {n: None for n in PINS}
+events = deque(maxlen=8)
+level, level_since = "SAFE", time.monotonic()
+
+data_f = open("safety_log.csv", "a", newline="")
+data_log = csv.writer(data_f)
+if data_f.tell() == 0:
+    data_log.writerow(["time", "node", "risk", "level", "occupied",
+                       *[f"{n}_activity" for n in WEIGHTS], "motion"])
+event_f = open("events.csv", "a", newline="")
+event_log = csv.writer(event_f)
+if event_f.tell() == 0:
+    event_log.writerow(["time", "node", "event"])
+
+def add_event(msg):
+    events.appendleft(f"{datetime.now():%H:%M:%S}  {msg}")
+    event_log.writerow([datetime.now().isoformat(timespec="seconds"), NODE_ID, msg])
+    event_f.flush()
+
+def ago(t, now):
+    return "never" if t is None else f"{now - t:.0f}s ago"
+
+def bar(x, width=20):
+    k = int(round(x * width))
+    return "#" * k + "." * (width - k)
+
+def level_for(risk):
+    if risk >= 70 or (activity["flame"] > 0.3 and activity["heat"] > 0.3):
+        return "EMERGENCY"
+    if risk >= 40:
+        return "WARNING"
+    if risk >= 15:
+        return "WATCH"
+    return "SAFE"
+
+add_event("Node online")
+last_tick = last_draw = last_log = time.monotonic()
+
+try:
+    while True:
+        now = time.monotonic()
+        dt, last_tick = now - last_tick, now
+
+        # 1. Read sensors
+        for n, s in sensors.items():
+            if s.value != idle[n]:
+                if last_seen[n] is None or now - last_seen[n] > 3:
+                    add_event(f"{LABELS[n]} detected")
+                last_seen[n] = now
+                if n in activity:
+                    activity[n] = 1.0
+
+        # 2. Fade activity so the score is continuous
+        for n in activity:
+            activity[n] *= 0.5 ** (dt / HALF_LIFE[n])
+
+        risk = min(100.0, sum(WEIGHTS[n] * activity[n] for n in WEIGHTS))
+        occupied = last_seen["motion"] is not None and now - last_seen["motion"] < OCCUPIED_FOR
+
+        # 3. Alert level: rise instantly, only drop after HOLD_ALERT seconds
+        new = level_for(risk)
+        if ORDER.index(new) >= ORDER.index(level):
+            if new != level:
+                add_event(f"Status {level} -> {new}")
+                level = new
+            level_since = now
+        elif now - level_since > HOLD_ALERT:
+            add_event(f"Status {level} -> {new}")
+            level, level_since = new, now
+
+        # 4. Buzzer patterns
+        if level == "EMERGENCY":
+            buzzer.value = int(now * 6) % 2 == 0      # fast beeping
+        elif level == "WARNING":
+            buzzer.value = (now % 1.0) < 0.1          # short beep each second
+        else:
+            buzzer.off()
+
+        # 5. Dashboard
+        if now - last_draw >= 0.5:
+            last_draw = now
+            out = [f"{BOLD}HOUSE SAFETY NODE  {NODE_ID}{RESET}    {datetime.now():%Y-%m-%d %H:%M:%S}", "",
+                   f"{COLORS[level]}  STATUS: {level:<10}  RISK {risk:5.1f} / 100  {RESET}"]
+            out.append(f"  Person inside: YES (motion {ago(last_seen['motion'], now)})"
+                       if occupied else "  Person inside: no one detected")
+            if occupied and ORDER.index(level) >= 2:
+                out.append(f"{COLORS['EMERGENCY']}  >>> PERSON AT RISK - DISPATCH PRIORITY <<<  {RESET}")
+            out += ["", f"  {'SENSOR':<15}{'NOW':<8}{'ACTIVITY':<23}LAST TRIGGER"]
+            for n in PINS:
+                state = "ACTIVE" if sensors[n].value != idle[n] else "quiet"
+                act = bar(activity[n]) if n in activity else " " * 20
+                out.append(f"  {LABELS[n]:<15}{state:<8}{act}   {ago(last_seen[n], now)}")
+            out += ["", "  Recent events:"]
+            out += [f"    {e}" for e in events]
+            out += ["", "  Ctrl+C to stop | logging to safety_log.csv + events.csv"]
+            sys.stdout.write("\033[H\033[2J" + "\n".join(out) + "\n")
+            sys.stdout.flush()
+
+        # 6. Log one row per second
+        if now - last_log >= 1.0:
+            last_log = now
+            data_log.writerow([datetime.now().isoformat(timespec="seconds"), NODE_ID,
+                               round(risk, 1), level, int(occupied),
+                               *[round(activity[n], 2) for n in WEIGHTS],
+                               int(sensors["motion"].value)])
+            data_f.flush()
+
+        time.sleep(0.01)
+except KeyboardInterrupt:
+    buzzer.off()
+    print("\nStopped.")
