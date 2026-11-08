@@ -1,0 +1,127 @@
+/* Headcount foundation tokens. The single source of truth for type, color,
+   materials, shape, spacing and motion on every monitor screen.
+   Screens may compose these tokens. They may NOT redefine them, add new
+   colors, fonts, radii or shadows, or skin a screen differently.
+   Spec and rationale: ./SYSTEM.md. Machine-checked by ./allowlist.json. */
+
+:root {
+  color-scheme: light;
+
+  /* ---------- type ---------- */
+  --font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter Variable', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --font-map: 'Roboto', 'Inter Variable', Arial, sans-serif; /* map labels only */
+
+  /* size / line-height / weight / tracking (apple.com, measured Nov 8) */
+  --t-hero: 600 3.5rem/1.07 var(--font-display);        /* 56px: one per screen at most */
+  --t-hero-track: -0.005em;
+  --t-headline: 600 2.5rem/1.1 var(--font-display);     /* 40px: screen titles, KPI values */
+  --t-headline-track: 0em;
+  --t-title: 600 1.75rem/1.14 var(--font-display);      /* 28px: panel titles, selected household */
+  --t-title-track: 0.007em;
+  --t-callout: 400 1.1875rem/1.21 var(--font-text);     /* 19px: subheads, row HPI numbers */
+  --t-callout-track: 0.012em;
+  --t-body: 400 1.0625rem/1.47 var(--font-text);        /* 17px: prose, reason sentence */
+  --t-body-track: -0.022em;
+  --t-subhead: 400 0.9375rem/1.33 var(--font-text);     /* 15px: row names (at 600), buttons */
+  --t-subhead-track: -0.016em;
+  --t-footnote: 400 0.8125rem/1.38 var(--font-text);    /* 13px: metadata, reasons, chips */
+  --t-footnote-track: -0.008em;
+  --t-caption: 500 0.75rem/1.33 var(--font-text);       /* 12px: badges, axes, kickers */
+  --t-caption-track: 0.02em;
+  --t-kicker-track: 0.06em;                             /* uppercase section kickers */
+  --t-micro: 400 0.6875rem/1.27 var(--font-text);       /* 11px: map attribution ONLY. Nothing smaller, ever. */
+
+  /* ---------- neutrals ---------- */
+  --bg: #f5f5f7;          /* app background behind panels */
+  --surface-1: #ffffff;   /* panels, cards, inspector */
+  --surface-2: #f5f5f7;   /* inset rows, grouped sections, hover */
+  --surface-3: #e8e8ed;   /* control tracks, empty bar segments */
+  --label: #1d1d1f;       /* primary text */
+  --label-2: #515154;     /* secondary text (>= 7:1 on white) */
+  --label-3: #6e6e73;     /* captions (>= 4.5:1 on white) */
+  --separator: #d2d2d7;   /* hairlines, panel borders */
+  --link: #0066cc;
+  --action: #1d1d1f;      /* primary pill fill */
+  --action-hover: #3a3a3c;
+  --on-action: #ffffff;
+  --focus: #0071e3;
+  --focus-ring: rgba(0, 113, 227, 0.6);
+
+  /* ---------- status: one set, identical on every screen, map and chart ---------- */
+  /* fill = pins, bars, dots   ink = text on white (AA)   tint = alert background */
+  --critical: #d92d20;  --critical-ink: #b42318;  --critical-tint: #fef3f2;  /* open critical, needs help */
+  --waiting: #e8590c;   --waiting-ink: #b54708;   --waiting-tint: #fff6ed;   /* open waiting, fire, power clock */
+  --ok: #12a150;        --ok-ink: #0e6b3a;        --ok-tint: #edfcf2;        /* found OK */
+  --assisted: #1f6feb;  --assisted-ink: #1558c0;  --assisted-tint: #eff5ff;  /* assisted, responder route */
+  --unknown: #8a8f98;   --unknown-ink: #5b616b;   --unknown-tint: #f2f4f7;   /* no sensor */
+  --route: #1f6feb;
+  --hazard: #d92d20;
+
+  /* ---------- materials ---------- */
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.16); /* inspector, popovers, toasts */
+  --shadow-map: 0 2px 8px rgba(0, 0, 0, 0.25);                                    /* glass objects on imagery */
+  --shadow-knob: 0 1px 3px rgba(0, 0, 0, 0.12);                                    /* selected segment, switch knob */
+  --mat-map: rgba(255, 255, 255, 0.82);
+  --mat-map-rim: rgba(255, 255, 255, 0.6);
+  --mat-chrome: rgba(250, 250, 252, 0.86);
+  --mat-blur: saturate(180%) blur(20px);
+  --scrim: rgba(255, 255, 255, 0.45);
+
+  /* ---------- shape ---------- */
+  --r-panel: 16px;
+  --r-card: 10px;
+  --r-control: 10px;
+  --r-badge: 6px;
+  --r-bar: 4px;
+  --r-hair: 2px;
+  --r-pill: 980px;
+
+  /* ---------- spacing (4-pt) ---------- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px;  --s-4: 16px;  --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-11: 44px; --s-16: 64px;
+
+  /* ---------- control heights ---------- */
+  --h-switch: 24px;
+  --h-sm: 28px;   /* chips, small buttons, segmented items */
+  --h-md: 32px;   /* segmented track, compact inputs */
+  --h-btn: 36px;  /* default buttons, top bar controls, map controls */
+  --h-lg: 44px;   /* large actions, dock input */
+
+  /* ---------- layout ---------- */
+  --topbar-h: 52px;
+  --margin-map: 16px;
+  --margin-page: 24px;
+  --inspector-w: 400px;
+  --rail-w: 248px;
+  --side-w: 360px;
+  --toast-w: 360px;
+
+  /* ---------- motion ---------- */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-press: 120ms;
+  --dur-hover: 150ms;
+  --dur-panel: 320ms;
+  --dur-count: 400ms;
+  --dur-camera: 700ms;
+
+  /* ---------- layers ---------- */
+  --z-map: 0;
+  --z-overlay: 10;
+  --z-panel: 20;
+  --z-inspector: 30;
+  --z-topbar: 40;
+  --z-popover: 50;
+  --z-toast: 60;
+  --z-moment: 70;
+}
+
+@media (max-width: 833px) {
+  :root { --topbar-h: 48px; }
+}
+@media (max-width: 1279px) {
+  :root { --inspector-w: 360px; --side-w: 320px; --rail-w: 220px; }
+}
