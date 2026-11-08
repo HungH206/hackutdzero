@@ -93,7 +93,7 @@
 .k3.assisted { background: var(--assisted); }
 .k3.open { background: #fff; color: var(--waiting-ink); border: 2px solid var(--waiting); box-shadow: none; }
 .k3.unknown { background: #fff; color: var(--label-2); border: 1.5px dashed var(--label-3); box-shadow: none; }
-.cm-land { fill: var(--surface-2); }
+.cm-land { fill: #5d6046; }
 .cm-park { fill: #dfe8d4; }
 .cm-park-label { font-size: 11px; font-style: italic; fill: #6f8a63; letter-spacing: 0.04em; }
 .cm-water { fill: #cbdfea; }
