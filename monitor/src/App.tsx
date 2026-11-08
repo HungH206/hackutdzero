@@ -9,6 +9,7 @@ import { EventLog } from './ui/EventLog';
 import { Icon } from './ui/Icon';
 import { Legend } from './ui/Legend';
 import { MapCanvas, type Layer } from './ui/MapCanvas';
+import { NetworkView } from './ui/NetworkView';
 import { QueuePanel } from './ui/QueuePanel';
 import { Rail, type ViewId } from './ui/Rail';
 import { Toasts, useAlerts } from './ui/Toasts';
@@ -20,7 +21,7 @@ export function App() {
   const now = useScenarioNow(snapshot.clockOffsetMicros);
   // Deep links: ?view=analytics|log and ?h=<household id>.
   const params = new URLSearchParams(window.location.search);
-  const [screen, setScreen] = useState<ViewId>(() => (['live', 'analytics', 'log'].includes(params.get('view') ?? '') ? (params.get('view') as ViewId) : 'live'));
+  const [screen, setScreen] = useState<ViewId>(() => (['live', 'network', 'analytics', 'log'].includes(params.get('view') ?? '') ? (params.get('view') as ViewId) : 'live'));
   const [hovered, setHovered] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(() => (params.get('h') ? Number(params.get('h')) : null));
   const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['heat', 'hazard', 'responders', 'outage', 'power']));
@@ -120,7 +121,8 @@ export function App() {
             <CommandDock ref={dock} view={view} snapshot={snapshot} actions={actions} onSelect={select} onError={setError} />
           </>
         )}
-        {screen !== 'live' && (
+        {screen === 'network' && <NetworkView view={view} onSelect={select} />}
+        {(screen === 'analytics' || screen === 'log') && (
           <div className="page">
             {screen === 'analytics' ? (
               <Analytics view={view} snapshot={snapshot} now={now} onSelect={select} />

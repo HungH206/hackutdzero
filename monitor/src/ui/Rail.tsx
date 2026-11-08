@@ -1,8 +1,9 @@
 import { Icon, type IconName } from './Icon';
 
-export type ViewId = 'live' | 'analytics' | 'log';
+export type ViewId = 'live' | 'network' | 'analytics' | 'log';
 const ITEMS: { id: ViewId; label: string; icon: IconName }[] = [
   { id: 'live', label: 'Live map', icon: 'map' },
+  { id: 'network', label: 'Network', icon: 'globe' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
   { id: 'log', label: 'Event log', icon: 'list' },
 ];
