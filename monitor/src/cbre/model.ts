@@ -52,12 +52,12 @@ export function impacts(s: Snapshot): BuildingImpact[] {
 
     const pOf = (id: SystemId): number => {
       switch (id) {
-        case 'structure': return clamp(shaking * shaking * risk * 0.9);
-        case 'elevator': return clamp(Math.max(shaking * (0.4 + risk * 0.5), powerOut * 0.35));
-        case 'power': return clamp(Math.max(powerOut * 0.85, shaking * 0.3));
-        case 'hvac': return clamp(Math.max(powerOut * 0.5, shaking * 0.35));
-        case 'fire': return fire ? 0.9 : clamp(shaking * 0.2);
-        case 'water': return clamp(shaking * (0.3 + risk * 0.4) + (fire ? 0.4 : 0));
+        case 'structure': return clamp(shaking * shaking * risk * 0.55);
+        case 'elevator': return clamp(Math.max(shaking * (0.15 + risk * 0.3), powerOut * 0.25));
+        case 'power': return clamp(Math.max(powerOut * 0.6, shaking * 0.12));
+        case 'hvac': return clamp(Math.max(powerOut * 0.3, shaking * 0.12));
+        case 'fire': return fire ? 0.85 : clamp(shaking * 0.08);
+        case 'water': return clamp(shaking * (0.08 + risk * 0.15) + (fire ? 0.35 : 0));
       }
     };
     const systems = prop.systems

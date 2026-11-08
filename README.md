@@ -235,11 +235,11 @@ Update this table honestly before submitting.
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
 | SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). **Not yet published to a real SpacetimeDB server.** Needs reconciling with Hung's schema. |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
-| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`. Verified against the local fallback. The live SpacetimeDB connection is written but **untested** until bindings are generated. |
+| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. The live SpacetimeDB connection is written but **untested** until bindings are generated. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
 | In-house wall screen (M5GO) | Planned |
 | Phone web app | Planned |
-| CBRE operations dashboard | Planned |
+| CBRE operations dashboard | Built as `/?app=cbre` in the monitor app. Reads the same live events; property and dollar figures are **synthetic** and come from a simple estimate model (see "CBRE view" below). |
 | Demo control panel (trigger events, fast-forward time) | Built into the monitor dashboard |
 | Node firmware (heartbeat, shake classifier, buttons) | Planned |
 | Power-loss clock | Built in the module (simulated power loss; real `power_lost` from nodes not yet tested) |
@@ -283,7 +283,13 @@ npm run dev         # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .e
 
 **Local fallback.** `dev:local` runs this repo's actual module code, including `recompute_hpi`, inside SpacetimeDB's official in-memory test datastore, which runs in the Vite dev server. It exists for development and as a demo backup if the server or network fails. It is not a SpacetimeDB server: there is no persistence and no multi-client sync. The header shows which source is live.
 
-Use **Demo controls** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
+Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
+
+Screens and deep links: `/` network graph, `/?view=tree&b=<building>` building view, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
+
+### CBRE view (estimate model)
+
+The CBRE screen turns the same live events into per-building operational impact. It does **not** use or change the HPI and never ranks people. Inputs: confirmed quake epicenters (shaking at a building falls off linearly to zero at 520 map units), confirmed fires, and the share of nearby nodes on battery (buildings without their own nodes, the office and warehouse, use homes within 260 units, labeled "inferred"). Each building system (structure, elevator, power, HVAC, fire suppression, water) gets a failure probability from those inputs and the building's risk score. Expected downtime is the largest system downtime weighted by its probability (+48 h with a fire); expected repair cost is the probability-weighted sum. Revenue at risk = hourly revenue × occupancy × min(horizon, downtime) × max(failure odds, 0.6 × power-out share), plus a quarter month of revenue with a fire. All rents, costs, tenants and repair figures in `monitor/src/cbre/portfolio.ts` are invented.
 
 ## The "found curve" (planned)
 
