@@ -32,10 +32,10 @@
 .py-brand { position: relative; display: flex; align-items: center; gap: 12px; }
 .py-sq { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: var(--label); background: var(--surface-2); border: 1px solid var(--line); }
 .py-sq:hover { background: var(--panel-3); }
-.py-logo { flex: none; }
+.py-logo { flex: none; width: 28px; height: 28px; border-radius: 8px; background: var(--action); color: var(--on-action); display: grid; place-items: center; }
 .py-brand-t { display: flex; flex-direction: column; line-height: 1.1; }
-.py-brand-t b { color: var(--label-2); font-weight: 600; font-size: 15px; }
-.py-brand-t span { color: var(--label); font-size: 13px; }
+.py-brand-t b { color: var(--label); font-weight: 600; font-size: 15px; }
+.py-brand-t span { color: var(--label-3); font-size: 12px; }
 .py-menu {
   position: absolute; top: 46px; left: 0; z-index: var(--z-pop); width: 220px; padding: 6px; border-radius: 14px;
   background: var(--surface-1); border: 1px solid var(--line-2); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
@@ -71,7 +71,7 @@
 .py-right { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
 .py-app .demo-btn {
   height: 34px; padding: 0 14px; border-radius: 8px; background: transparent; color: var(--label); font-weight: 500;
-  border: 1px solid rgba(232, 201, 138, 0.75); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--separator); box-shadow: none;
 }
 .py-app .demo-btn:hover, .py-app .demo-btn.on { background: var(--surface-2); filter: none; }
 .py-app .demo-pop { background: var(--surface-1); border-color: var(--line-2); }
@@ -92,10 +92,10 @@
 .py-node:focus-visible > circle:first-child { stroke: var(--focus); stroke-width: 1.5; }
 .py-label { font-family: var(--cond); font-size: 15px; fill: var(--label); letter-spacing: 0.005em; paint-order: stroke; stroke: var(--separator); stroke-width: 3px; }
 .py-label.big { font-size: 22px; font-weight: 600; }
-.py-tag { fill: rgba(52, 60, 60, 0.92); stroke: var(--separator); stroke-width: 0.6; }
+.py-tag { fill: var(--surface-2); stroke: var(--separator); stroke-width: 0.6; }
 .py-tag-t { font-family: var(--cond); font-size: 10.5px; fill: var(--label); text-anchor: middle; font-weight: 600; }
 .py-tag-t.lg { font-size: 13px; letter-spacing: 0.04em; }
-.py-tag-t.sm { font-size: 8px; letter-spacing: 0.03em; }
+.py-tag-t.sm { font-size: 11px; letter-spacing: 0.03em; }
 .py-tag-u { fill: var(--label-2); font-weight: 400; }
 .gold { fill: var(--label-2); }
 .py-badge { fill: #2a2350; stroke: var(--separator); stroke-width: 0.6; }
@@ -183,7 +183,7 @@
 .py-app .dstat + .dstat { border-left-color: var(--separator); }
 .py-app .dstat-val b { font-family: var(--cond); font-size: 22px; font-weight: 400; }
 .py-app .dock-input { background: linear-gradient(180deg, #f2f5f4, #dfe6e4); height: 52px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35); }
-.py-app .dock-input:focus-within { box-shadow: 0 0 0 2px rgba(232, 201, 138, 0.8), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.py-app .dock-input:focus-within { box-shadow: 0 0 0 3px var(--focus-ring), var(--shadow-panel); }
 .py-app .dock-input > svg { color: #4b5b58; }
 .py-app .send { background: var(--surface-1); color: var(--label); width: 44px; height: 38px; border-radius: 999px; }
 .py-app .cmd-results { background: var(--surface-1); border: 1px solid var(--line-2); bottom: calc(100% + 12px); }
@@ -221,7 +221,7 @@
 .py-d-score.critical { background: radial-gradient(120% 140% at 20% 100%, var(--surface-2), var(--surface-2) 65%); }
 .py-d-score.high { background: radial-gradient(120% 140% at 20% 100%, rgba(170, 100, 40, 0.38), var(--surface-2) 65%); }
 .py-d-score-h { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: var(--label); }
-.py-band { font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid rgba(232, 201, 138, 0.8); color: var(--label); }
+.py-band { font-size: 12px; padding: 2px 9px; border-radius: 6px; border: 1px solid var(--separator); color: var(--label); }
 .py-d-score-b { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 10px; }
 .py-d-score-b b { font-family: var(--cond); font-size: 46px; font-weight: 400; line-height: 1; color: var(--label); }
 .py-d-score-b small { display: block; font-size: 13px; color: var(--label-2); margin-top: 4px; }
@@ -296,14 +296,14 @@
 
 /* Map screen in the same teal night palette. */
 .py-app .glass { background: var(--surface-1); border-color: var(--separator); }
-.py-app .bldg { fill: #0d1c1c; stroke: #24403e; }
-.py-app .map-label { fill: #4f6a67; }
+.py-app .bldg { fill: #f7f6f3; stroke: var(--separator); }
+.py-app .map-label { fill: var(--label-2); }
 .py-app .map-label.bldg-name { fill: var(--label-2); font-family: var(--cond); font-size: 10px; letter-spacing: 0.08em; }
 .py-app .map-canvas { background: var(--surface-1); }
 .py-app .qp-row, .py-app .gauge-card, .py-app .ladder-track, .py-app .factor, .py-app .sensor, .py-app .override { background: var(--surface-2); }
-.py-app .qp-row.sel { border-color: #e8c98a; }
-.py-app .seg button.on, .py-app .tool.on { background: #e8c98a; color: #1d1404; }
-.py-app .act.good { background: #e8c98a; }
+.py-app .qp-row.sel { border-color: var(--label); }
+.py-app .seg button.on, .py-app .tool.on { background: var(--action); color: var(--on-action); }
+.py-app .act.good { background: var(--action); color: var(--on-action); }
 .py-app .detail, .py-app .queue-panel { background: var(--surface-1); }
 
 /* Overview has its own chrome: keep toasts below the title row, clear of the actions. */
@@ -312,7 +312,12 @@
 .py-app.screen-overview.has-detail .toasts { right: 28px; }
 
 /* Always-visible reminder that this is a simulation with synthetic data. */
-.py-sim { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8a5a00; background: var(--surface-2); border: 1px solid rgba(255, 183, 3, .55); }
+.py-sim { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--waiting-ink); background: var(--waiting-tint); border: 1px solid var(--separator); }
 
 /* Contract: no spotlight or orb art (SYSTEM.md section 2). */
 .py-bg { display: none; }
+/* Building view: flat, no rings or orbs (SYSTEM.md section 1.2). */
+.py-orbit-disc, .py-orbit-line { display: none; }
+.py-focus-card { fill: var(--surface-3); stroke: var(--separator); }
+.py-focus-card.hot { fill: var(--critical-tint); stroke: var(--critical); }
+.gold { fill: var(--label); font-weight: 600; }

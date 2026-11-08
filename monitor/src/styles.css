@@ -209,11 +209,11 @@ h1, h2, p { margin: 0; }
 .map-label.park { fill: #3d6a4c; }
 .map-label.road { fill: #4a4a50; font-size: 8px; }
 .map-label.bldg-name { fill: var(--label-2); font-weight: 600; font-size: 9px; }
-.map-label .bldg-meta, .bldg-meta { fill: #5c5c62; font-weight: 400; }
+.map-label .bldg-meta, .bldg-meta { fill: var(--label-3); font-weight: 400; }
 .map-label.station { fill: var(--blue); font-weight: 600; }
 .map-label.epi { fill: var(--critical); font-weight: 700; }
-.bldg { fill: #1a1a1c; stroke: #333337; stroke-width: 1; transition: fill 0.4s, stroke 0.4s; }
-.bldg.fire { fill: #2a1416; stroke: var(--critical); animation: fireglow 1.6s ease-in-out infinite; }
+.bldg { fill: #f7f6f3; stroke: var(--separator); stroke-width: 1; transition: fill 0.4s, stroke 0.4s; }
+.bldg.fire { fill: var(--waiting-tint); stroke: var(--waiting); }
 @keyframes fireglow { 50% { stroke-opacity: 0.35; } }
 .heat { mix-blend-mode: screen; pointer-events: none; transition: r 0.6s; }
 .shockwave { fill: none; stroke: var(--critical); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: shock 3.6s ease-out infinite; }
