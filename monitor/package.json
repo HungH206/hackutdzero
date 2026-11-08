@@ -14,10 +14,12 @@
     "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/outfit": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/roboto": "5.3.0",
     "@fontsource/roboto-condensed": "^5.2.8",
     "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.2",
