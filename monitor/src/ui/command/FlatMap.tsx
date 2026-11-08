@@ -3,8 +3,7 @@ import { clockText } from '../../data/derive';
 import type { Household } from '../../data/types';
 import { STATION } from '../MapCanvas';
 import type { Map3DProps } from './Map3D';
-import { CEDAR_Y, dispatchedOf, knocksOf, massesOf, ROADS, STATUS_LABEL, statusOf, visibleUnder } from './model';
-import { drawSitePlan, SITE, SITE_D, SITE_W } from './sitePlan';
+import { CEDAR_Y, dispatchedOf, knocksOf, ROADS, STATUS_LABEL, statusOf, visibleUnder } from './model';
 
 // Flat cartographic map of Cedar Hollow. Used when WebGL is unavailable or the
 // 3D map fails to start, so the main dashboard always has a working map.
@@ -24,14 +23,6 @@ export function FlatMap({ view, snapshot, zoom, filter, selected, hover, onHover
   const active = snapshot.disasters.filter((d) => d.active);
   const quakes = active.filter((d) => d.kind === 'quake');
   const fires = active.filter((d) => d.kind === 'fire');
-
-  // No WebGL: the same satellite paint as every other map, as a flat image.
-  const geoKey = `${view.building.size}:${view.households.length}`;
-  const satellite = useMemo(
-    () => (view.building.size ? drawSitePlan(massesOf(view.building.values(), view.households), view.households).toDataURL('image/jpeg', 0.86) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geoKey],
-  );
 
   const cells = useMemo(() => {
     const out = new Map<number, { w: number; h: number }>();
@@ -153,7 +144,6 @@ export function FlatMap({ view, snapshot, zoom, filter, selected, hover, onHover
         <path d="M-80 -60 H150 Q120 10 40 20 Q-20 26 -80 4 Z" className="cm-park" />
         <path d="M-80 626 C 100 612, 240 610, 340 636 S 520 618, 660 614 S 840 604, 1100 624 L1100 760 L-80 760 Z" className="cm-water" />
         <path d="M-80 626 C 100 612, 240 610, 340 636 S 520 618, 660 614 S 840 604, 1100 624" className="cm-bank" />
-        {satellite && <image href={satellite} x={SITE.x0} y={SITE.z0} width={SITE_W} height={SITE_D} preserveAspectRatio="none" />}
         <text x={60} y={662} className="cm-water-label">
           Cedar Creek
         </text>
