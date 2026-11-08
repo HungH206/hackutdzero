@@ -613,3 +613,17 @@ h1, h2, p { margin: 0; }
 .an-next-empty { margin: 0; display: flex; gap: 6px; align-items: center; font: var(--t-footnote); color: var(--label-2); }
 .an-next-empty svg { color: var(--ok); }
 @media (max-width: 1279px) { .an-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .an-next { grid-column: span 2; } }
+/* Bubble matrix (R04): buildings x status, circles sized by household count. */
+.an-matrix { margin-top: 12px; }
+.an-matrix table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.an-matrix th, .an-matrix td { padding: 8px 10px; border-bottom: 1px solid var(--separator); text-align: center; font: var(--t-footnote); }
+.an-matrix thead th { font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.an-matrix tbody th { text-align: left; font-weight: 600; color: var(--label); }
+.an-matrix td { height: 52px; }
+.an-bubble { display: inline-grid; place-items: center; border-radius: 50%; font: var(--t-caption); font-weight: 600; border: 1px solid; }
+.an-bubble[data-s='critical'] { background: var(--critical-tint); border-color: var(--critical); color: var(--critical-ink); }
+.an-bubble[data-s='waiting'] { background: var(--waiting-tint); border-color: var(--waiting); color: var(--waiting-ink); }
+.an-bubble[data-s='ok'] { background: var(--ok-tint); border-color: var(--ok); color: var(--ok-ink); }
+.an-bubble[data-s='assisted'] { background: var(--assisted-tint); border-color: var(--assisted); color: var(--assisted-ink); }
+.an-bubble[data-s='unknown'] { background: var(--unknown-tint); border-color: var(--unknown); color: var(--unknown-ink); }
+.an-matrix thead th:first-child { text-align: left; }

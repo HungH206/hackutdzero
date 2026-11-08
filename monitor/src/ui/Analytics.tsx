@@ -1,9 +1,16 @@
 import { bandCounts, fmtMin, foundCurve, ladderFunnel, median, timesToFound, type View } from '../data/derive';
-import type { Snapshot } from '../data/types';
+import type { Household, Snapshot } from '../data/types';
 import { AreaChart, BAND_COLOR, Ring } from './Gauges';
 import { Icon } from './Icon';
 
 // Counts, times and roll-ups of server data. No scoring happens here.
+const MATRIX_COLS: { id: string; label: string; tone: string; test(v: View, h: Household): boolean }[] = [
+  { id: 'help', label: 'Needs help', tone: 'critical', test: (_v, h) => h.finalState === 'found_needs_help' },
+  { id: 'open', label: 'Open', tone: 'waiting', test: (v, h) => h.finalState === 'unresolved' && h.hasSensor && !!v.prio.get(h.id)?.rank },
+  { id: 'ok', label: 'Found OK', tone: 'ok', test: (_v, h) => h.finalState === 'found_ok' },
+  { id: 'assisted', label: 'Assisted', tone: 'assisted', test: (_v, h) => h.finalState === 'assisted' },
+  { id: 'unknown', label: 'No sensor', tone: 'unknown', test: (_v, h) => !h.hasSensor && h.finalState === 'unresolved' },
+];
 export function Analytics({ view, snapshot, now, onSelect }: { view: View; snapshot: Snapshot; now: number; onSelect(id: number): void }) {
   const curve = foundCurve(snapshot, now);
   const c = view.counts;
@@ -290,6 +297,43 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
           </table>
         </section>
       </div>
+      <section className="card an-matrix">
+        <div className="eyebrow">Buildings by status</div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Building</th>
+              {MATRIX_COLS.map((c) => (
+                <th key={c.id} scope="col">
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {buildings.map((r) => {
+              const hs = view.households.filter((h) => h.buildingId === r.b.id);
+              return (
+                <tr key={r.b.id}>
+                  <th scope="row">{r.b.name}</th>
+                  {MATRIX_COLS.map((c) => {
+                    const n = hs.filter((h) => c.test(view, h)).length;
+                    return (
+                      <td key={c.id}>
+                        {n > 0 && (
+                          <span className="an-bubble" data-s={c.tone} style={{ width: 18 + n * 4, height: 18 + n * 4 }} aria-label={`${r.b.name}: ${n} ${c.label}`}>
+                            {n}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }
