@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { countdown, FINAL_LABEL, STEP_LABEL, type View } from '../../data/derive';
 import type { Household } from '../../data/types';
 import { Icon } from '../Icon';
 import { STATION } from '../MapCanvas';
+import { massesOf } from '../command/model';
+import { drawSitePlan, SITE, SITE_D, SITE_W } from '../command/sitePlan';
 import './houses.css';
 
 // Calm neighborhood view, after the terrain-map reference: soft terrain with a
@@ -57,6 +59,13 @@ interface Props {
 
 export function Houses({ view, now, selected, onSelect, onOpen }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
+  // The same fictional satellite paint as the 3D main map and the Live map.
+  const geoKey = `${view.building.size}:${view.households.length}`;
+  const satellite = useMemo(
+    () => (view.building.size ? drawSitePlan(massesOf(view.building.values(), view.households), view.households).toDataURL('image/jpeg', 0.86) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geoKey],
+  );
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   useEffect(() => {
@@ -195,6 +204,7 @@ export function Houses({ view, now, selected, onSelect, onOpen }: Props) {
                 <path d={d} stroke="#ffffff" strokeWidth={0.8} strokeDasharray="6 6" opacity={0.7} />
               </g>
             ))}
+            {satellite && <image href={satellite} x={SITE.x0} y={SITE.z0} width={SITE_W} height={SITE_D} preserveAspectRatio="none" />}
             {[...view.building.values()].map((b) => (
               <rect key={b.id} x={b.x - 6} y={b.y - 6} width={b.w + 12} height={b.h + 12} rx={14} className="hs-lot" />
             ))}
