@@ -347,6 +347,6 @@ Built at HackUTD 2026 by Avin, Hung, Aryan and Aahan.
 
 ### Gemini drafts on the hosted monitor
 
-The neighborhood agent's **Draft with Gemini** button can draft without the Photon laptop server. Set `GEMINI_API_KEY` in Vercel's server environment (no `VITE_` prefix), optionally set `GEMINI_MODEL` (default `gemini-2.5-flash`), and redeploy the `monitor` project. The same-origin `/api/draft` Node function calls Gemini; the key never enters the browser bundle. It receives only synthetic event flags and returns editable simulation wording. Drafting never sends a message. Photon is still required for sending. Plain `npm run dev` does not run Vercel functions; locally use the running Photon agent's draft endpoint or a Vercel development server.
+The neighborhood agent's **Draft with Gemini** button can draft without the Photon laptop server. Set `GEMINI_API_KEY` in Vercel's server environment (no `VITE_` prefix), optionally set `GEMINI_MODEL` (default `gemini-flash-latest`), and redeploy the `monitor` project. The same-origin `/api/draft` Node function calls Gemini; the key never enters the browser bundle. It receives only synthetic event flags and returns editable simulation wording. Drafting never sends a message. Photon is still required for sending. Plain `npm run dev` does not run Vercel functions; locally use the running Photon agent's draft endpoint or a Vercel development server.
 
 Production build and six mocked endpoint checks passed. Live Gemini generation and Vercel deployment remain unverified until a server key is configured.
