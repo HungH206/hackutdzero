@@ -15,6 +15,12 @@ const CONFIGURED = import.meta.env.VITE_AGENT_URL?.replace(/\/$/, '');
 const AGENT_URL: string | null = CONFIGURED || (LOCAL_PAGE ? 'http://127.0.0.1:8787' : null);
 const AGENT = AGENT_URL ?? '';
 
+function agentHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  let token = '';
+  try { token = sessionStorage.getItem(`headcount.agent.${AGENT}`) ?? ''; } catch { /* Storage may be unavailable. */ }
+  return { accept: 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...extra };
+}
+
 const EVACUATE =
   'THIS IS AN EMERGENCY. A fire hazard or storm is in close proximity to your neighborhood. Please evacuate this area now. Reply OK if you are safe, or HELP if you need help.';
 
@@ -42,7 +48,8 @@ function useAgentLink(): Link {
     let alive = true;
     const ping = async () => {
       try {
-        const r = await fetch(`${AGENT}/api/status`, { headers: { accept: 'application/json' } });
+        const r = await fetch(`${AGENT}/api/status`, { headers: agentHeaders() });
+        if (!r.ok) throw new Error('Agent authentication or connection failed');
         const j = (await r.json()) as { joined: number };
         if (alive) setLink({ state: 'up', joined: j.joined });
       } catch {
@@ -93,7 +100,7 @@ export function AgentScreen() {
     try {
       const r = await fetch(up ? `${AGENT}/draft` : '/api/draft', {
         method: 'POST',
-        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        headers: up ? agentHeaders({ 'content-type': 'application/json' }) : { 'content-type': 'application/json' },
         body: JSON.stringify({ active, hazards: snapshot.disasters.filter((d) => d.active).map((d) => d.kind) }),
       });
       if (!r.ok) {
@@ -118,7 +125,7 @@ export function AgentScreen() {
     try {
       const body = new URLSearchParams({ text: text.trim() });
       if (buildingId !== null) body.set('building', String(buildingId));
-      const r = await fetch(`${AGENT}/announce`, { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }, body });
+      const r = await fetch(`${AGENT}/announce`, { method: 'POST', headers: agentHeaders({ 'content-type': 'application/x-www-form-urlencoded' }), body });
       if (!r.ok) throw new Error(await r.text());
       const j = (await r.json()) as { sent: number; skipped: number };
       setNote(`Sent to ${j.sent} ${j.sent === 1 ? 'person' : 'people'} in ${scope}.${j.skipped ? ` ${j.skipped} skipped: not joined yet, stopped, or the send failed.` : ''}`);
@@ -164,6 +171,12 @@ export function AgentScreen() {
         </span>
       </header>
 
+      {AGENT_URL && <button className="hc-btn hc-btn--secondary" onClick={() => {
+        const token = window.prompt('Enter the dispatcher access token for the Photon agent.');
+        if (token === null) return;
+        try { sessionStorage.setItem(`headcount.agent.${AGENT}`, token.trim()); setNote('Agent access saved for this tab. Checking connection…'); }
+        catch { setError('Browser storage is unavailable.'); }
+      }}>Connect Photon agent</button>}
       <section className="agents__card" aria-label="Message">
         <h2 className="agents__kicker">Message</h2>
         <textarea
