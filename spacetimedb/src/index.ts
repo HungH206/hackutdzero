@@ -636,6 +636,12 @@ function reportEvent(ctx: Ctx, householdId: number, kind: string, value: number,
     if (node.flame && node.tempRiseC >= FLAME_CONFIRM_TEMP_C) confirmFire(ctx, h);
   } else if (kind === 'motion') {
     ctx.db.node.householdId.update({ ...node, lastMotionMicros: at });
+  } else if (kind === 'sound') {
+    ctx.db.node.householdId.update(node);
+    log(ctx, 'sensor', 'info', h.id, `Loud noise picked up at ${h.name} (${h.unit}).`);
+  } else if (kind === 'camera') {
+    ctx.db.node.householdId.update(node);
+    log(ctx, 'sensor', 'info', h.id, `Camera snapshot taken at ${h.name} (${h.unit}); image analysis pending.`);
   } else if (kind === 'power_lost') {
     ctx.db.node.householdId.update({ ...node, onBattery: true, powerLostAtMicros: node.powerLostAtMicros || at });
   } else if (kind === 'power_restored') {
@@ -683,8 +689,9 @@ function seed(ctx: Ctx) {
   const at = now(ctx);
   for (const s of seedHouseholds()) {
     const { simBehavior, simDelayMin, simContact, simKnock, ...profile } = s;
+    // A household with a registered hardware node stays marked as real across demo resets.
     ctx.db.household.insert({
-      ...profile, finalState: FINAL.unresolved, finalAtMicros: 0n, finalNote: '', simulated: true, simBehavior, simDelayMin, simContact, simKnock,
+      ...profile, finalState: FINAL.unresolved, finalAtMicros: 0n, finalNote: '', simulated: ![...ctx.db.nodeOwner.householdId.filter(s.id)].length, simBehavior, simDelayMin, simContact, simKnock,
     });
     if (s.hasSensor) {
       ctx.db.node.insert({

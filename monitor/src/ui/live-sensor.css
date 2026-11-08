@@ -1,0 +1,14 @@
+.ls-badges { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+.ls-chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: var(--r-pill, 980px); font: 500 0.75rem/1 var(--font-text); white-space: nowrap; }
+.ls-live { background: var(--assisted-tint); color: var(--assisted-ink); }
+.ls-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--assisted); animation: ls-blink 1.6s ease-in-out infinite; }
+.ls-live.off { background: var(--unknown-tint); color: var(--unknown-ink); }
+.ls-live.off i { background: var(--unknown); animation: none; }
+.ls-alert { background: var(--critical-tint); color: var(--critical-ink); }
+@keyframes ls-blink { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .ls-live i { animation: none; } }
+.ls-strip h2 { margin: 0 0 6px; font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.ls-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; padding: 8px; border: 0; border-radius: var(--r-card); background: none; text-align: left; cursor: pointer; color: inherit; font: inherit; }
+.ls-row:hover { background: var(--surface-2); }
+.ls-name { font: 600 0.9375rem/1.3 var(--font-text); }
+.ls-name em { font-style: normal; font-weight: 400; color: var(--label-3); }
