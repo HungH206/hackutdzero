@@ -4,7 +4,7 @@ import type { ConnectionInfo } from '../../data/types';
 import { Icon, type IconName } from '../Icon';
 import type { GraphFilter } from './Graph';
 
-export type Screen = 'graph' | 'tree' | 'map' | 'analytics' | 'log';
+export type Screen = 'overview' | 'graph' | 'tree' | 'houses' | 'map' | 'analytics' | 'log';
 
 interface Props {
   screen: Screen;
@@ -24,8 +24,10 @@ interface Props {
 }
 
 const NAV: { id: Screen; label: string; icon: IconName }[] = [
+  { id: 'overview', label: 'Overview', icon: 'layers' },
   { id: 'graph', label: 'Network graph', icon: 'globe' },
   { id: 'tree', label: 'Building view', icon: 'route' },
+  { id: 'houses', label: 'Houses', icon: 'home' },
   { id: 'map', label: 'Live map', icon: 'map' },
   { id: 'analytics', label: 'Analytics', icon: 'chart' },
   { id: 'log', label: 'Event log', icon: 'list' },
@@ -76,6 +78,9 @@ export function Header(p: Props) {
           <button className={p.screen === 'tree' ? 'on' : ''} onClick={() => p.onScreen('tree')} aria-label="Building view" title="Building view">
             <Icon name="route" size={18} />
           </button>
+          <button className={p.screen === 'houses' ? 'on' : ''} onClick={() => p.onScreen('houses')} aria-label="Houses" title="Houses">
+            <Icon name="home" size={18} />
+          </button>
           <button className={p.screen === 'map' ? 'on' : ''} onClick={() => p.onScreen('map')} aria-label="Live map" title="Live map">
             <Icon name="map" size={18} />
           </button>
@@ -117,6 +122,11 @@ export function Header(p: Props) {
               ))}
             </div>
           )}
+        </div>
+        <div className="py-group solo">
+          <button className={p.screen === 'overview' ? 'on' : ''} onClick={() => p.onScreen('overview')} aria-label="Overview" title="Overview">
+            <Icon name="layers" size={18} />
+          </button>
         </div>
         <div className="py-group solo">
           <button className={p.screen === 'analytics' ? 'on' : ''} onClick={() => p.onScreen('analytics')} aria-label="Analytics" title="Analytics">

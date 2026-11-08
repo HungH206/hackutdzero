@@ -327,3 +327,8 @@
 .py-app .seg button.on, .py-app .tool.on { background: #e8c98a; color: #1d1404; }
 .py-app .act.good { background: #e8c98a; }
 .py-app .detail, .py-app .queue-panel { background: rgba(7, 16, 17, 0.97); }
+
+/* Overview has its own chrome: keep toasts below the title row, clear of the actions. */
+.py-app.screen-overview .toasts { top: auto; bottom: 28px; right: 28px; }
+.py-app.screen-houses .toasts, .py-app.screen-houses.has-detail .toasts { top: auto; bottom: 24px; right: 24px; }
+.py-app.screen-overview.has-detail .toasts { right: 28px; }

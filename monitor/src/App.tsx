@@ -19,8 +19,10 @@ import { Header, type Screen } from './ui/py/Header';
 import { PyLegend } from './ui/py/Legend';
 import { TimeRail } from './ui/py/TimeRail';
 import { Toasts, useAlerts } from './ui/Toasts';
+import { Houses } from './ui/houses/Houses';
+import { Overview } from './ui/overview/Overview';
 
-const SCREENS: Screen[] = ['graph', 'tree', 'map', 'analytics', 'log'];
+const SCREENS: Screen[] = ['overview', 'graph', 'tree', 'houses', 'map', 'analytics', 'log'];
 
 export function App() {
   const { snapshot, actions, connection } = useHeadcount();
@@ -47,7 +49,7 @@ export function App() {
 
   const select = useCallback((id: number | null) => {
     setSelected(id);
-    setScreen((s) => (id !== null && (s === 'analytics' || s === 'log') ? 'graph' : s));
+    setScreen((s) => (id !== null && (s === 'analytics' || s === 'log' || s === 'overview') ? 'graph' : s));
   }, []);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setScreen((s) => (s === 'analytics' || s === 'log' ? 'graph' : s));
+        setScreen((s) => (s === 'analytics' || s === 'log' || s === 'overview' || s === 'houses' ? 'graph' : s));
         requestAnimationFrame(() => dock.current?.focus());
       } else if (e.key === 'Escape') setSelected(null);
     };
@@ -152,6 +154,19 @@ export function App() {
         />
       )}
 
+      {screen === 'houses' && (
+        <Houses
+          view={view}
+          now={now}
+          selected={selectedId}
+          onSelect={setSelected}
+          onOpen={(id) => {
+            setSelected(id);
+            setScreen('map');
+          }}
+        />
+      )}
+
       {screen === 'map' && (
         <div className="stage">
           <MapCanvas
@@ -190,7 +205,30 @@ export function App() {
         </div>
       )}
 
-      <Header
+      {screen === 'overview' && (
+        <Overview
+          view={view}
+          snapshot={snapshot}
+          now={now}
+          actions={actions}
+          unread={alerts.unread}
+          onNav={(s) => {
+            setScreen(s);
+            if (s === 'log') alerts.clearUnread();
+          }}
+          onSelectGlobal={(id) => {
+            setSelected(id);
+            setScreen('map');
+          }}
+          onSearch={() => {
+            setScreen('map');
+            requestAnimationFrame(() => dock.current?.focus());
+          }}
+          onError={setError}
+        />
+      )}
+
+      {screen !== 'overview' && <Header
         screen={screen}
         onScreen={(s) => {
           setScreen(s);
@@ -214,7 +252,7 @@ export function App() {
           setScreen('log');
         }}
         demo={<DemoPanel view={view} actions={actions} onError={setError} />}
-      />
+      />}
 
       <Toasts
         toasts={alerts.toasts}
