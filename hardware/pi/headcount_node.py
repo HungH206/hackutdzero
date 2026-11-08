@@ -26,7 +26,7 @@ import json, os, queue, sys, threading, time, urllib.request, urllib.error
 from collections import deque
 from datetime import datetime
 
-VERSION = "v6"
+VERSION = "v7"
 SERVER = os.environ.get("HC_SERVER", "https://maincloud.spacetimedb.com")
 DB = os.environ.get("HC_DB", "rescuedb")
 HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
@@ -38,8 +38,11 @@ TOKEN_FILE = os.path.expanduser("~/.headcount_token")
 DRY = "--dry" in sys.argv
 CAMERA = "--no-camera" not in sys.argv
 PLAIN = "--plain" in sys.argv
+# Shock is strict: it needs SHOCK_PULSES separate impacts within SHOCK_WINDOW seconds.
+SHOCK_PULSES = int(os.environ.get("HC_SHOCK_PULSES", "4"))
+SHOCK_WINDOW = float(os.environ.get("HC_SHOCK_WINDOW", "2.0"))
 PIR_WARMUP = int(os.environ.get("HC_PIR_WARMUP", "20"))
-COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 10, "sound": 10}  # s between reports
+COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 3, "sound": 10}  # s between reports
 
 events = deque(maxlen=10)
 lock = threading.Lock()
@@ -156,6 +159,7 @@ def main():
     last_seen = {n: None for n in PINS}
     last_sent = {n: 0.0 for n in PINS}
     chirp_until = 0.0
+    pulses = deque(); prev_shock = 0
     last_hb = last_draw = 0.0
 
     while True:
@@ -163,8 +167,21 @@ def main():
         if t - last_hb >= 10:
             send("heartbeat", {"householdId": HOUSEHOLD, "onBattery": False}); last_hb = t
 
+        v = sensors["shock"].value
+        if v and not prev_shock:
+            pulses.append(t)
+            if PLAIN: print("shock pulse %d/%d" % (len(pulses), SHOCK_PULSES), flush=True)
+        prev_shock = v
+        while pulses and t - pulses[0] > SHOCK_WINDOW:
+            pulses.popleft()
+        hard_shake = len(pulses) >= SHOCK_PULSES
+
         for n, s in sensors.items():
-            if s.value == idle[n]:
+            if n == "shock":
+                if not hard_shake:
+                    continue
+                pulses.clear()
+            elif s.value == idle[n]:
                 continue
             first = last_seen[n] is None or t - last_seen[n] > 3
             last_seen[n] = t

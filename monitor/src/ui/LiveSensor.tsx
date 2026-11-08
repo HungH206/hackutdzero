@@ -14,6 +14,7 @@ export interface SensorState {
   online: boolean;
   shakingAgoS: number | null;
   flame: boolean;
+  motionAgoS: number | null;
 }
 
 export function sensorState(h: Household | undefined, n: NodeRow | undefined, now: number): SensorState {
@@ -24,6 +25,7 @@ export function sensorState(h: Household | undefined, n: NodeRow | undefined, no
     online: !!n?.online,
     shakingAgoS: ago >= 0 && ago <= RECENT_MICROS ? Math.round(ago / 1e6) : null,
     flame: !!n?.flame,
+    motionAgoS: (() => { const m = Number(n?.lastMotionMicros ?? 0); const a = now - m; return m > 0 && a >= 0 && a <= 120e6 ? Math.round(a / 1e6) : null; })(),
   };
 }
 
@@ -42,6 +44,7 @@ export function LiveSensorBadge({ h, n, now, compact }: { h?: Household; n?: Nod
         </span>
       )}
       {s.flame && <span className="ls-chip ls-alert">Flame detected</span>}
+      {s.motionAgoS !== null && <span className="ls-chip ls-motion" title="Reported by the real motion sensor">Motion inside{compact ? '' : ` · ${s.motionAgoS}s ago`}</span>}
     </span>
   );
 }
