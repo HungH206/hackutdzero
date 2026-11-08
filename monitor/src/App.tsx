@@ -17,6 +17,7 @@ import { Drill, type Cat } from './ui/py/Drill';
 import type { GraphFilter } from './ui/py/Graph';
 import { Header, type Screen } from './ui/py/Header';
 import { Toasts, useAlerts } from './ui/Toasts';
+import { PiAlerts } from './ui/py/PiAlerts';
 import { portView } from './dashboards';
 import { Houses } from './ui/houses/Houses';
 import { Overview } from './ui/overview/Overview';
@@ -286,6 +287,13 @@ export function App() {
           alerts.dismiss(t.id);
           if (t.householdId && view.hh.has(t.householdId)) select(t.householdId);
         }}
+      />
+      <PiAlerts
+        names={(id) => {
+          const h = view.hh.get(id);
+          return h ? `${h.name}, Unit ${h.unit}` : null;
+        }}
+        onOpen={select}
       />
       {error && (
         <div className="err-toast glass" role="alert">

@@ -420,3 +420,44 @@
   .py-live-dot, .py-live-row.flash, .py-live-row.flash::before { animation: none !important; }
   .py-live-bar i { transition: none; }
 }
+
+/* Shock / vibration meter on the live Pi card */
+.py-shock { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--r-card); background: var(--surface-1); border-left: 4px solid transparent; transition: background-color var(--dur-panel) var(--ease), border-color var(--dur-panel) var(--ease), opacity var(--dur-panel) var(--ease); }
+.py-shock.dim { opacity: 0.5; }
+.py-shock-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.py-shock-t { display: inline-flex; align-items: center; gap: 8px; font: 600 0.9375rem/1.2 var(--font-text); color: var(--label); }
+.py-shock-t svg { color: var(--label-3); }
+.py-shock-badge { height: var(--h-sm); display: inline-flex; align-items: center; padding: 0 10px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--label-2); font: 600 0.8125rem/1 var(--font-text); }
+.py-shock-trace { width: 100%; height: 44px; display: block; }
+.py-shock-trace .base { stroke: var(--separator); stroke-width: 1; }
+.py-shock-trace rect { fill: var(--surface-3); }
+.py-shock-trace rect.on { fill: var(--label-3); }
+.py-shock-f { display: flex; flex-wrap: wrap; gap: 4px 14px; font: var(--t-footnote); color: var(--label-3); }
+.py-shock-f b { font: 600 0.9375rem/1 var(--font-mono); color: var(--label); }
+.py-shock.active { background: var(--waiting-tint); border-left-color: var(--waiting); }
+.py-shock.active .py-shock-t svg { color: var(--waiting); animation: py-shock-shake 0.35s linear infinite; }
+.py-shock.active .py-shock-badge { background: var(--waiting); color: var(--surface-1); }
+.py-shock.active .py-shock-trace rect.on { fill: var(--waiting); }
+.py-shock.active .py-shock-f { color: var(--waiting-ink); }
+@keyframes py-shock-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
+
+/* Banner for shock / flame / heat from the live Pi, visible on every screen */
+.py-pialert { position: fixed; z-index: var(--z-toast); top: 76px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; min-width: 300px; max-width: min(460px, calc(100vw - 32px)); padding: 10px 10px 10px 14px; border-radius: var(--r-card); background: var(--surface-1); border: 1px solid var(--separator); border-left: 5px solid var(--waiting); box-shadow: var(--shadow-pop, 0 8px 24px rgba(0, 0, 0, 0.18)); animation: py-pialert-in 220ms var(--ease) 1; }
+.py-pialert.is-flame { border-left-color: var(--critical); }
+.py-pialert-ico { display: inline-flex; color: var(--waiting); }
+.py-pialert.is-flame .py-pialert-ico { color: var(--critical); }
+.py-pialert-body { all: unset; cursor: pointer; flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.py-pialert-body b { font: 600 1rem/1.2 var(--font-text); color: var(--label); }
+.py-pialert-body span { font: var(--t-footnote); color: var(--label-2); }
+.py-pialert-x { all: unset; cursor: pointer; display: inline-flex; padding: 8px; border-radius: var(--r-pill); color: var(--label-3); }
+.py-pialert-x:hover { background: var(--surface-3); }
+@keyframes py-pialert-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .py-shock.active .py-shock-t svg, .py-pialert { animation: none !important; } }
+
+/* Motion reads red when tripped */
+.py-live-row.kind-motion.tripped .py-live-ico { color: var(--critical); }
+.py-live-row.kind-motion.tripped .py-live-bar i { background: var(--critical); }
+.py-live-row.kind-motion.tripped .py-live-pin b { color: var(--critical-ink); }
+.py-live-row.kind-motion.flash { animation-name: py-live-flash-red; }
+.py-live-row.kind-motion.flash::before { background: var(--critical); }
+@keyframes py-live-flash-red { 0% { background: var(--critical-tint); } 100% { background: transparent; } }

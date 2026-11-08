@@ -92,6 +92,8 @@ export function LiveSensors({ pi }: { pi: Feed }) {
         </p>
       )}
 
+      {s && !s.warming && mode !== 'error' && <ShockMeter s={s} tick={pi.receivedAt} dim={mode === 'stale'} />}
+
       {s && mode !== 'error' && <Rows s={s} flash={flash} now={now} dim={mode === 'stale'} />}
 
       {s && !s.warming && mode !== 'error' && (
@@ -123,6 +125,55 @@ export function LiveSensors({ pi }: { pi: Feed }) {
   );
 }
 
+const SHOCK_SAMPLES = 60; // 15 s at the 250 ms poll
+
+/** Live vibration trace: bars are shock-pin edges per sample, so every tap is visible. */
+function ShockMeter({ s, tick, dim }: { s: PiState; tick: number; dim: boolean }) {
+  const hist = useRef<number[]>(Array(SHOCK_SAMPLES).fill(0));
+  const prev = useRef<number | null>(null);
+  const [, redraw] = useState(0);
+  useEffect(() => {
+    const d = prev.current == null ? 0 : Math.max(0, s.edges.shock - prev.current);
+    prev.current = s.edges.shock;
+    hist.current = [...hist.current.slice(1), d];
+    redraw((n) => n + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+
+  const ago = s.lastSeenAgo.shock;
+  const active = ago != null && ago < 3;
+  const recent = hist.current.slice(-40).reduce((a, b) => a + b, 0);
+  const peak = Math.max(...hist.current.slice(-40));
+  const strength = peak >= 10 ? 'Strong' : peak >= 3 ? 'Moderate' : 'Light';
+  return (
+    <div className={`py-shock${active ? ' active' : ''}${dim ? ' dim' : ''}`} data-ui="shock-meter" role="status" aria-label="Shock and vibration">
+      <div className="py-shock-h">
+        <span className="py-shock-t">
+          <Icon name="quake" size={18} />
+          Shock / vibration
+        </span>
+        <span className="py-shock-badge">{active ? `${strength} shaking` : 'Steady'}</span>
+      </div>
+      <svg className="py-shock-trace" viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="0" y1="43.5" x2="240" y2="43.5" className="base" />
+        {hist.current.map((v, i) => {
+          const h = v <= 0 ? 0 : 5 + Math.min(1, v / 8) * 37;
+          return <rect key={i} x={i * 4 + 0.5} width={3} y={44 - h} height={h} rx={1} className={v > 0 ? 'on' : ''} />;
+        })}
+      </svg>
+      <div className="py-shock-f">
+        <span>
+          <b>{recent}</b> taps in 10s
+        </span>
+        <span>
+          <b>{s.edges.shock}</b> total
+        </span>
+        <span>{ago == null ? 'never triggered' : `last ${secs(ago)}`}</span>
+      </div>
+    </div>
+  );
+}
+
 function Rows({ s, flash, now, dim }: { s: PiState; flash: Record<string, number>; now: number; dim: boolean }) {
   return (
     <div className={`py-live-rows${dim ? ' dim' : ''}`} role="table" aria-label="Sensors">
@@ -135,7 +186,7 @@ function Rows({ s, flash, now, dim }: { s: PiState; flash: Record<string, number
         const edges = isMotion ? s.motionCount : s.edges[r.kind as Exclude<PiKind, 'motion'>];
         const flashing = flash[r.kind] != null && now - flash[r.kind]! < FLASH_MS;
         return (
-          <div key={r.kind} className={`py-live-row${tripped ? ' tripped' : ''}${flashing ? ' flash' : ''}`} role="row">
+          <div key={r.kind} className={`py-live-row kind-${r.kind}${tripped ? ' tripped' : ''}${flashing ? ' flash' : ''}`} role="row">
             <span className="py-live-ico">
               <Icon name={r.icon} size={18} />
             </span>
