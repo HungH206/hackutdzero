@@ -19,34 +19,36 @@ Context: read `AGENTS.md` first, and `README.md` for the product and the HPI mat
 - [ ] Confirm the team's beginner-track eligibility (needs 3 of 4 first-time hackers)
 
 ## P0: backend (SpacetimeDB)
+Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in-memory datastore. Not yet published to a real server. No `responder`/`assignment` tables yet; `heartbeat` lives on `node`.
 - [ ] Reconcile the data model in `AGENTS.md` with the schema already started locally
-- [ ] Tables: `building`, `household`, `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `responder`, `assignment`, `override_log`
-- [ ] Reducers: `register_node`, `heartbeat`, `report_event`, `submit_checkin`
-- [ ] `confirm_disaster`: confirm when 2+ nearby nodes report sustained shaking within about 10 s
-- [ ] `recompute_hpi`: implement **exactly** the README formula, write score + factor breakdown + reason string to `priority`
+- [x] [Avin] Tables: `building`, `household`, `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `responder`, `assignment`, `override_log`
+- [x] [Avin] Reducers: `register_node`, `heartbeat`, `report_event`, `submit_checkin`
+- [x] [Avin] `confirm_disaster`: confirm when 2+ nearby nodes report sustained shaking within about 10 s
+- [x] [Avin] `recompute_hpi`: implement **exactly** the README formula, write score + factor breakdown + reason string to `priority`
 - [ ] Scheduled tick (about every 5 s) that recomputes silence and advances escalation (verify scheduling syntax in the docs)
-- [ ] End states per household and an "accounted for" count
-- [ ] `override_priority` with required reason, logged
-- [ ] Unit checks: reproduce the three worked examples from the README (expected HPI 95.0, 38.8, 94.5)
+- [x] [Avin] End states per household and an "accounted for" count
+- [x] [Avin] `override_priority` with required reason, logged
+- [x] [Avin] Unit checks: reproduce the three worked examples from the README (expected HPI 95.0, 38.8, 94.5)
 - [ ] Publish the module and share how to connect (host/db name, no secrets in the repo)
+- [ ] Install the SpacetimeDB CLI, `spacetime start`, publish, `npm run generate` in /monitor, test the live path
 
 ## P0: simulator and demo control
-- [ ] Generate about 40 synthetic households with profiles (age, mobility, device and backup runtime, language, lives alone, infant)
-- [ ] Hero cases: Mrs. Alvarez, healthy near the epicenter, fire unit, family with infant, non-English speaker
-- [ ] Send heartbeats and check-ins like a real node; some residents answer OK, some HELP, some stay silent
-- [ ] Demo control panel: trigger quake, fire, power loss; fast-forward time; reset
+- [x] [Avin] Generate about 40 synthetic households with profiles (age, mobility, device and backup runtime, language, lives alone, infant)
+- [x] [Avin] Hero cases: Mrs. Alvarez, healthy near the epicenter, fire unit, family with infant, non-English speaker
+- [x] [Avin] Send heartbeats and check-ins like a real node; some residents answer OK, some HELP, some stay silent
+- [x] [Avin] Demo control panel: trigger quake, fire, power loss; fast-forward time; reset
 - [ ] Real nodes and simulated nodes must look identical to the server
 
 ## P0: monitor dashboard (`/monitor`)
-- [ ] Scaffold app and connect to SpacetimeDB with live subscriptions
-- [ ] Accounted-for counter ("N of M accounted for")
-- [ ] Ranked queue showing score, plain-English reason, ladder step and countdown
-- [ ] Live priority map: markers colored by HPI band, size by score, rank numbers on the top 10, final-state markers, "unknown" areas for no-sensor zones
-- [ ] Offline fallback basemap (do not depend on internet tiles)
-- [ ] Household card: factor breakdown (E, S, C, V, K), responder action, override with reason
-- [ ] Hover and click linking between queue and map
-- [ ] Event timeline and coverage (equity) meter
-- [ ] Fire alerts for anomalous units (flame and temperature)
+- [ ] [Avin] Scaffold app and connect to SpacetimeDB with live subscriptions (app scaffolded and running on the local fallback; live connection untested until `spacetime generate`)
+- [x] [Avin] Accounted-for counter ("N of M accounted for")
+- [x] [Avin] Ranked queue showing score, plain-English reason, ladder step and countdown
+- [x] [Avin] Live priority map: markers colored by HPI band, size by score, rank numbers on the top 10, final-state markers, "unknown" areas for no-sensor zones
+- [x] [Avin] Offline fallback basemap (do not depend on internet tiles)
+- [x] [Avin] Household card: factor breakdown (E, S, C, V, K), responder action, override with reason
+- [x] [Avin] Hover and click linking between queue and map
+- [x] [Avin] Event timeline and coverage (equity) meter
+- [x] [Avin] Fire alerts for anomalous units (flame and temperature)
 
 ## P1: wall screen and node firmware (`/firmware`)
 - [ ] Read the M5GO over USB and confirm which sensors the kit has

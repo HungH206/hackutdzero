@@ -48,6 +48,11 @@ Also needed for the demo: a **demo control panel** (trigger quake / fire / power
 
 **Bridge between State Farm and CBRE:** buildings contain units. A unit is a household. The monitor view is per unit and per person. The CBRE view rolls the same events up to the building with dollars attached. Core portfolio is multifamily apartments, with one office and one warehouse added as extra rows.
 
+## Built so far (branch `monitor-dashboard`)
+- `/spacetimedb`: SpacetimeDB 2.x TypeScript module. Tables: `clock`, `building`, `household`, `node`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `override_log`, `timeline`, `tick_schedule`. The HPI math is in `src/hpi.ts` and is called only from `recompute_hpi`. Demo simulation is done by `sim_*` reducers plus a 5 s scheduled `tick`. Test with `npm test`, which runs in the SDK's in-memory datastore.
+- `/monitor`: Vite + React dashboard. `npm run dev:local` runs the module in-process (no server). `npm run dev` connects to a published module after `npm run generate`.
+- Not yet done: publishing to a real SpacetimeDB server, reconciling with Hung's schema, responders/assignments.
+
 ## Proposed data model (a proposal: reconcile with Hung's actual schema before relying on it)
 - Tables: `building`, `household` (profile and location), `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority` (HPI, factor breakdown, reason), `responder`, `assignment`, `override_log`.
 - Reducers: `register_node`, `heartbeat`, `report_event`, `confirm_disaster`, `submit_checkin`, `recompute_hpi`, `advance_escalation` (scheduled), `assign_responder`, `override_priority`, plus demo-only `sim_*` reducers.
