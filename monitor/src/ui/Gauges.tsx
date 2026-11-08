@@ -145,8 +145,8 @@ export function AreaChart({
     <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="area" role="img" aria-label={label} style={{ height }}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.08} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.08} />
         </linearGradient>
       </defs>
       <line x1={0} x2={W} y1={sy(max)} y2={sy(max)} stroke="var(--line)" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />

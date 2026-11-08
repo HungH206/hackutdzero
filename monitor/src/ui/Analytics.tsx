@@ -1,9 +1,16 @@
 import { bandCounts, fmtMin, foundCurve, ladderFunnel, median, timesToFound, type View } from '../data/derive';
-import type { Snapshot } from '../data/types';
+import type { Household, Snapshot } from '../data/types';
 import { AreaChart, BAND_COLOR, Ring } from './Gauges';
 import { Icon } from './Icon';
 
 // Counts, times and roll-ups of server data. No scoring happens here.
+const MATRIX_COLS: { id: string; label: string; tone: string; test(v: View, h: Household): boolean }[] = [
+  { id: 'help', label: 'Needs help', tone: 'critical', test: (_v, h) => h.finalState === 'found_needs_help' },
+  { id: 'open', label: 'Open', tone: 'waiting', test: (v, h) => h.finalState === 'unresolved' && h.hasSensor && !!v.prio.get(h.id)?.rank },
+  { id: 'ok', label: 'Found OK', tone: 'ok', test: (_v, h) => h.finalState === 'found_ok' },
+  { id: 'assisted', label: 'Assisted', tone: 'assisted', test: (_v, h) => h.finalState === 'assisted' },
+  { id: 'unknown', label: 'No sensor', tone: 'unknown', test: (_v, h) => !h.hasSensor && h.finalState === 'unresolved' },
+];
 export function Analytics({ view, snapshot, now, onSelect }: { view: View; snapshot: Snapshot; now: number; onSelect(id: number): void }) {
   const curve = foundCurve(snapshot, now);
   const c = view.counts;
@@ -24,6 +31,12 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
   const hist = Array.from({ length: 8 }, (_, i) => ttf.filter((t) => t >= i * 5 && (i === 7 || t < (i + 1) * 5)).length);
   const histMax = Math.max(1, ...hist);
 
+  const sinceStart = curve.length ? curve[curve.length - 1]!.accounted : 0;
+  const atStart = c.accounted - sinceStart;
+  const hiAcc = high.filter(isAcc).length;
+  const restAcc = rest.filter(isAcc).length;
+  const next = view.queue.slice(0, 5);
+
   const buildings = [...view.building.values()]
     .map((b) => {
       const hs = view.households.filter((h) => h.buildingId === b.id);
@@ -42,6 +55,68 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
           <h1>Is everyone being found?</h1>
         </div>
         <span className="chip">{view.disasterActive ? 'Live incident' : 'No active incident'} · synthetic data</span>
+      </div>
+
+      <div className="an-kpis">
+        <section className="an-kpi">
+          <span className="an-kpi-l">Accounted for</span>
+          <b className="an-kpi-v">
+            {c.accounted}
+            <small> of {c.total}</small>
+          </b>
+          <span className="an-kpi-was">
+            At incident start: <b>{view.disasterActive ? atStart : '—'}</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">Median time to found</span>
+          <b className="an-kpi-v">{fmtMin(med)}</b>
+          <span className="an-kpi-was">
+            90% found within: <b>{fmtMin(p90)}</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">High-need found</span>
+          <b className="an-kpi-v">
+            {pct(hiAcc, high.length)}
+            <small>%</small>
+          </b>
+          <span className="an-kpi-was">
+            Everyone else: <b>{pct(restAcc, rest.length)}%</b>
+          </span>
+        </section>
+        <section className="an-kpi">
+          <span className="an-kpi-l">Still open</span>
+          <b className="an-kpi-v">{view.queue.length}</b>
+          <span className="an-kpi-was">{view.queue.length ? 'Ranked by need on the priority table' : 'Nobody waiting'}</span>
+        </section>
+        <section className="an-next">
+          <span className="an-kpi-l">Next to reach</span>
+          {next.length === 0 ? (
+            <p className="an-next-empty">
+              <Icon name="check" size={14} /> Everyone with a sensor is accounted for.
+            </p>
+          ) : (
+            <ol>
+              {next.map((h) => {
+                const p = view.prio.get(h.id);
+                return (
+                  <li key={h.id}>
+                    <button onClick={() => onSelect(h.id)}>
+                      <span className="an-next-r" data-band={p?.band}>
+                        {p?.rank}
+                      </span>
+                      <span className="an-next-n">
+                        {h.name} <small>{view.building.get(h.buildingId)?.name} {h.unit}</small>
+                      </span>
+                      <span className="an-next-h">{p?.hpi.toFixed(0)}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
       </div>
 
       <div className="bento">
@@ -222,6 +297,43 @@ export function Analytics({ view, snapshot, now, onSelect }: { view: View; snaps
           </table>
         </section>
       </div>
+      <section className="card an-matrix">
+        <div className="eyebrow">Buildings by status</div>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Building</th>
+              {MATRIX_COLS.map((c) => (
+                <th key={c.id} scope="col">
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {buildings.map((r) => {
+              const hs = view.households.filter((h) => h.buildingId === r.b.id);
+              return (
+                <tr key={r.b.id}>
+                  <th scope="row">{r.b.name}</th>
+                  {MATRIX_COLS.map((c) => {
+                    const n = hs.filter((h) => c.test(view, h)).length;
+                    return (
+                      <td key={c.id}>
+                        {n > 0 && (
+                          <span className="an-bubble" data-s={c.tone} style={{ width: 18 + n * 4, height: 18 + n * 4 }} aria-label={`${r.b.name}: ${n} ${c.label}`}>
+                            {n}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }

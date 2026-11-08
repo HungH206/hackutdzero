@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { countdown, FINAL_LABEL, STEP_LABEL, type View } from '../../data/derive';
 import type { Household } from '../../data/types';
 import { Icon } from '../Icon';
 import { STATION } from '../MapCanvas';
+import { massesOf } from '../command/model';
+import { drawSitePlan, SITE, SITE_D, SITE_W } from '../command/sitePlan';
 import './houses.css';
 
 // Calm neighborhood view, after the terrain-map reference: soft terrain with a
@@ -30,12 +32,12 @@ function statusOf(view: View, h: Household): Status {
 
 const ROOF: Record<Status, string> = {
   calm: '#cfd8d2',
-  ok: '#8fd9b6',
-  assisted: '#9cc7f2',
-  help: '#f2c46b',
-  critical: '#f08aa0',
-  waiting: '#c4b5f5',
-  unknown: '#7d8984',
+  ok: '#12a150',
+  assisted: '#1f6feb',
+  help: '#d92d20',
+  critical: '#d92d20',
+  waiting: '#e8590c',
+  unknown: '#8a8f98',
 };
 const LABEL: Record<Status, string> = {
   calm: 'All clear',
@@ -57,6 +59,13 @@ interface Props {
 
 export function Houses({ view, now, selected, onSelect, onOpen }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
+  // The same fictional satellite paint as the 3D main map and the Live map.
+  const geoKey = `${view.building.size}:${view.households.length}`;
+  const satellite = useMemo(
+    () => (view.building.size ? drawSitePlan(massesOf(view.building.values(), view.households), view.households).toDataURL('image/jpeg', 0.86) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geoKey],
+  );
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [hover, setHover] = useState<number | null>(null);
   useEffect(() => {
@@ -177,12 +186,12 @@ export function Houses({ view, now, selected, onSelect, onOpen }: Props) {
         {/* Terrain is drawn twice: blurred everywhere, sharp in the middle (tilt-shift). */}
         {[false, true].map((sharp) => (
           <g key={String(sharp)} filter={sharp ? undefined : 'url(#hs-blur)'} mask={sharp ? 'url(#hs-sharp)' : undefined}>
-            <rect x={BOX.x - 50} y={BOX.y - 50} width={BOX.w + 100} height={BOX.h + 100} fill="#1b2620" />
+            <rect x={BOX.x - 50} y={BOX.y - 50} width={BOX.w + 100} height={BOX.h + 100} fill="#5d6046" />
             <rect x={BOX.x - 50} y={BOX.y - 50} width={BOX.w + 100} height={BOX.h + 100} filter="url(#hs-terrain)" opacity={0.55} />
-            <path d="M-380 618 C -120 600, 180 588, 300 650 S 470 606, 620 600 S 760 586, 1100 616 L1100 760 L-380 760z" fill="#1d2d36" />
-            <path d="M-380 618 C -120 600, 180 588, 300 650 S 470 606, 620 600 S 760 586, 1100 616" stroke="#2c4350" strokeWidth={3} fill="none" />
-            <path d="M880 20 h150 v170 h-110 q-50 -30 -40 -90z" fill="#24402d" />
-            <path d="M-40 -40 h180 q-30 60 -110 70 q-50 5 -70 -20z" fill="#22382a" opacity={0.8} />
+            <path d="M-380 618 C -120 600, 180 588, 300 650 S 470 606, 620 600 S 760 586, 1100 616 L1100 760 L-380 760z" fill="#2c3b3a" />
+            <path d="M-380 618 C -120 600, 180 588, 300 650 S 470 606, 620 600 S 760 586, 1100 616" stroke="#4f5b44" strokeWidth={3} fill="none" />
+            <path d="M880 20 h150 v170 h-110 q-50 -30 -40 -90z" fill="#2f4134" />
+            <path d="M-40 -40 h180 q-30 60 -110 70 q-50 5 -70 -20z" fill="#414b3c" opacity={0.9} />
             {[
               `M-360 62 H1060`,
               `M-360 ${ROAD_Y} H1060`,
@@ -191,10 +200,11 @@ export function Houses({ view, now, selected, onSelect, onOpen }: Props) {
               'M642 -40 V680',
             ].map((d) => (
               <g key={d}>
-                <path d={d} stroke="#0d1310" strokeWidth={12} opacity={0.5} />
-                <path d={d} stroke="#d9dfda" strokeWidth={4} strokeLinecap="round" opacity={0.85} />
+                <path d={d} stroke="#45474a" strokeWidth={12} opacity={0.95} />
+                <path d={d} stroke="#ffffff" strokeWidth={0.8} strokeDasharray="6 6" opacity={0.7} />
               </g>
             ))}
+            {satellite && <image href={satellite} x={SITE.x0} y={SITE.z0} width={SITE_W} height={SITE_D} preserveAspectRatio="none" />}
             {[...view.building.values()].map((b) => (
               <rect key={b.id} x={b.x - 6} y={b.y - 6} width={b.w + 12} height={b.h + 12} rx={14} className="hs-lot" />
             ))}

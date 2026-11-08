@@ -23,34 +23,31 @@ interface Props {
   demo: ReactNode;
 }
 
-const NAV: { id: Screen; label: string; icon: IconName }[] = [
-  { id: 'overview', label: 'Overview', icon: 'layers' },
-  { id: 'graph', label: 'Network graph', icon: 'globe' },
-  { id: 'tree', label: 'Building view', icon: 'route' },
-  { id: 'houses', label: 'Houses', icon: 'home' },
-  { id: 'map', label: 'Live map', icon: 'map' },
-  { id: 'analytics', label: 'Analytics', icon: 'chart' },
-  { id: 'log', label: 'Event log', icon: 'list' },
+// One website: every screen is a tab in the same top bar.
+export const NAV: { id: Screen; label: string; icon: IconName; hint: string }[] = [
+  { id: 'analytics', label: 'Dashboard', icon: 'chart', hint: 'Is everyone being found? The big picture.' },
+  { id: 'graph', label: 'Command', icon: 'globe', hint: '3D Cedar Hollow with the dispatch queue' },
+  { id: 'map', label: 'Map', icon: 'map', hint: 'Every home on the map, top-down or tilted' },
+  { id: 'tree', label: 'Buildings', icon: 'route', hint: 'Who in each building still needs reaching' },
+  { id: 'overview', label: 'Units', icon: 'layers', hint: 'Floor-by-floor units and the waiting list' },
 ];
+
 
 export function Header(p: Props) {
   const [menu, setMenu] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const ff = Math.round(p.offsetMicros / 6e7);
-  const graphish = p.screen === 'graph' || p.screen === 'tree';
   return (
     <header className="py-head">
       <div className="py-brand">
         <button className="py-sq" onClick={() => setMenu((m) => !m)} aria-label="Views" aria-expanded={menu}>
           <Icon name="list" size={18} />
         </button>
-        <svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true" className="py-logo">
-          <path d="M12 3h12v6h-4v4h-4V9h-4zM3 12h6v4h4v4H9v4H3zM33 12h-6v4h-4v4h4v4h6zM12 33h12v-6h-4v-4h-4v4h-4z" fill="none" stroke="#e2bf7b" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M18 12.5l1.6 4 4 1.5-4 1.5-1.6 4-1.6-4-4-1.5 4-1.5z" fill="#fff4dc" />
-        </svg>
+        <span className="py-logo" aria-hidden="true">
+          <Icon name="house" size={16} />
+        </span>
         <div className="py-brand-t">
           <b>Headcount</b>
-          <span>Disaster Response</span>
+          <span>Cedar Hollow · simulated</span>
         </div>
         {menu && (
           <nav className="py-menu" aria-label="Views">
@@ -73,70 +70,19 @@ export function Header(p: Props) {
         )}
       </div>
 
-      <div className="py-tools" role="toolbar" aria-label="View controls">
-        <div className="py-group">
-          <button className={p.screen === 'graph' ? 'on' : ''} onClick={() => p.onScreen('graph')} aria-label="Network graph" title="Network graph">
-            <Icon name="globe" size={18} />
-          </button>
-          <button className={p.screen === 'tree' ? 'on' : ''} onClick={() => p.onScreen('tree')} aria-label="Building view" title="Building view">
-            <Icon name="route" size={18} />
-          </button>
-          <button className={p.screen === 'houses' ? 'on' : ''} onClick={() => p.onScreen('houses')} aria-label="Houses" title="Houses">
-            <Icon name="home" size={18} />
-          </button>
-          <button className={p.screen === 'map' ? 'on' : ''} onClick={() => p.onScreen('map')} aria-label="Live map" title="Live map">
-            <Icon name="map" size={18} />
-          </button>
-        </div>
-        <div className="py-group">
-          <button onClick={() => p.onZoom(Math.min(2.4, p.zoom * 1.25))} disabled={!graphish} aria-label="Zoom in">
-            <Icon name="plus" size={18} />
-          </button>
-          <button onClick={() => p.onZoom(Math.max(0.6, p.zoom / 1.25))} disabled={!graphish} aria-label="Zoom out">
-            <Icon name="minus" size={18} />
-          </button>
-        </div>
-        <div className="py-group solo">
-          <button className={filterOpen ? 'on' : ''} onClick={() => setFilterOpen((o) => !o)} aria-label="Filter households" aria-expanded={filterOpen} disabled={p.screen !== 'graph'}>
-            <Icon name="sliders" size={18} />
-            {p.filter !== 'all' && <span className="py-dot">1</span>}
-          </button>
-          {filterOpen && (
-            <div className="py-pop" role="menu">
-              {(
-                [
-                  ['all', 'Everyone'],
-                  ['open', 'Still open'],
-                  ['help', 'Critical and needs help'],
-                ] as [GraphFilter, string][]
-              ).map(([f, l]) => (
-                <button
-                  key={f}
-                  role="menuitemradio"
-                  aria-checked={p.filter === f}
-                  className={p.filter === f ? 'on' : ''}
-                  onClick={() => {
-                    p.onFilter(f);
-                    setFilterOpen(false);
-                  }}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="py-group solo">
-          <button className={p.screen === 'overview' ? 'on' : ''} onClick={() => p.onScreen('overview')} aria-label="Overview" title="Overview">
-            <Icon name="layers" size={18} />
-          </button>
-        </div>
-        <div className="py-group solo">
-          <button className={p.screen === 'analytics' ? 'on' : ''} onClick={() => p.onScreen('analytics')} aria-label="Analytics" title="Analytics">
-            <Icon name="chart" size={18} />
-            {p.openCount > 0 && <span className="py-dot">{p.openCount > 99 ? '99' : p.openCount}</span>}
-          </button>
-        </div>
+      <div className="py-tools">
+        <nav className="hc-nav" aria-label="Screens">
+          {NAV.map((n) => {
+            const on = p.screen === n.id || (n.id === 'map' && p.screen === 'houses');
+            return (
+              <button key={n.id} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined} title={n.hint} onClick={() => p.onScreen(n.id)}>
+                <Icon name={n.icon} size={16} />
+                <span>{n.label}</span>
+                {n.id === 'graph' && p.openCount > 0 && <em>{p.openCount > 99 ? '99' : p.openCount}</em>}
+              </button>
+            );
+          })}
+        </nav>
         <div className="py-group solo">
           <button className={p.screen === 'log' ? 'on' : ''} onClick={p.onBell} aria-label={`Event log, ${p.unread} unread`} title="Event log">
             <Icon name="bell" size={18} />

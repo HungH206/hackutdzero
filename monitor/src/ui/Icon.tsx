@@ -27,7 +27,7 @@ const PATHS = {
   quake: 'M2 12h3l2-6 3 12 3-9 2 5 2-2h5',
   radio: 'M4.9 19.1a10 10 0 0 1 0-14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M19.1 4.9a10 10 0 0 1 0 14.2M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
   sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
-  alert: 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01',
+  warn: 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01',
   chevronRight: 'm9 18 6-6-6-6',
   chevronDown: 'm6 9 6 6 6-6',
   command: 'M18 3a3 3 0 0 0-3 3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 0 0 0-6z',
@@ -40,6 +40,22 @@ const PATHS = {
   route: 'M6 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM9 16h6.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H12',
   arrowUpRight: 'M7 17 17 7M8 7h9v9',
   thermo: 'M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z',
+  // SYSTEM.md §5 names (24 grid, stroke 1.6, round caps).
+  'shield-check': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM8.5 12l2.5 2.5 4.5-5',
+  question: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01',
+  alert: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 7.5v5.5M12 16.5h.01',
+  pin: 'M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  compass: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM15.5 8.5l-2 5-5 2 2-5z',
+  'chevron-right': 'm9 18 6-6-6-6',
+  'chevron-left': 'm15 18-6-6 6-6',
+  'chevron-down': 'm6 9 6 6 6-6',
+  close: 'M18 6 6 18M6 6l12 12',
+  house: 'm3 10 9-7 9 7M5 8.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 21v-6h4v6',
+  building: 'M4 21V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v17M16 9h3a1 1 0 0 1 1 1v11M2 21h20M8 7h4M8 11h4M8 15h4',
+  grid: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  undo: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+  'fast-forward': 'M13 19l9-7-9-7v14zM2 19l9-7-9-7v14z',
+  'wifi-off': 'M2 2l20 20M8.5 16.5a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 4.2-2.7M10.7 5.1A15 15 0 0 1 22 8.8M5 12.9a10 10 0 0 1 5.2-2.7M16.8 11.2a10 10 0 0 1 2.2 1.7M12 20h.01',
 } satisfies Record<string, string>;
 
 export type IconName = keyof typeof PATHS;
@@ -47,7 +63,7 @@ export type IconName = keyof typeof PATHS;
 /** Raw path data, for drawing icons inside an existing SVG (map markers). */
 export const iconPath = (name: IconName) => PATHS[name];
 
-export function Icon({ name, size = 18, className, strokeWidth = 1.8 }: { name: IconName; size?: number; className?: string; strokeWidth?: number }) {
+export function Icon({ name, size = 18, className, strokeWidth = 1.6 }: { name: IconName; size?: number; className?: string; strokeWidth?: number }) {
   return (
     <svg
       className={className}
