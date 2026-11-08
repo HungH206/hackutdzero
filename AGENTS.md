@@ -55,7 +55,7 @@ Also needed for the demo: a **demo control panel** (trigger quake / fire / power
 - `/monitor`: Vite + React dashboard. `npm run dev:local` runs the module in-process (no server). `npm run dev` connects to a published module after `npm run generate`.
   Screens: network graph, operations overview, houses, building view, live map, analytics, event log, plus the CBRE view (`?app=cbre`). `npm run dashboards` serves each on its own localhost port (5180-5186), all sharing one backend.
   **Graphics revamp handoff:** `docs/GRAPHICS_HANDOFF.md` (data contract, per-screen requirements, design references, what not to touch).
-- Not yet done: publishing to a real SpacetimeDB server, reconciling with Hung's schema, responders/assignments.
+- Published to Maincloud `rescuedb` on Nov 8, 2026 (40 synthetic households). Monitor and CLI defaults use this hosted database. Still pending: reconciling with Hung's schema, responders/assignments, and two-window browser verification.
 
 ## Proposed data model (a proposal: reconcile with Hung's actual schema before relying on it)
 - Tables: `building`, `household` (profile and location), `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority` (HPI, factor breakdown, reason), `responder`, `assignment`, `override_log`.
@@ -90,7 +90,7 @@ This is a plan. Create folders as they are needed and keep the layout consistent
 ## Verifying your change
 - `cd spacetimedb && npm run typecheck && npm test` (85 tests, in-memory datastore). Never read `h.db` inside `withReducerTx` in a test: it traps the harness.
 - `cd monitor && npm run typecheck && npm run build`.
-- Against a real server: `spacetime publish --server local --module-path spacetimedb headcount` (always pass `--server local`; the default server may be hosted, and run it from this repo so the CLI does not read another project's `spacetime.json`), `npm run generate`, then `npm run verify:live` in `/monitor`.
+- For the shared Maincloud database use `cd monitor && npm run db:publish && npm run generate`; `db:status`, `promote`, and `verify:live` read the same Vite development environment. `verify:live` resets simulation state. Local-only workflow: `spacetime publish --server local --module-path spacetimedb headcount` (always pass `--server local`; the default server may be hosted, and run it from this repo so the CLI does not read another project's `spacetime.json`), `npm run generate`, then `npm run verify:live` in `/monitor`.
 - A browser is read-only until promoted: `npm run promote` in `/monitor`. The dashboard persists its SpacetimeDB token in `localStorage`, so an identity survives reloads; anonymous connections are issued a new identity every time, so do not remove that.
 - Details and the demo script: `docs/HPI.md`, `docs/DEMO_SCENARIO.md`.
 
