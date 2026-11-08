@@ -324,3 +324,29 @@
 .py-focus-card { fill: var(--surface-3); stroke: var(--separator); }
 .py-focus-card.hot { fill: var(--critical-tint); stroke: var(--critical); }
 .gold { fill: var(--label); font-weight: 600; }
+
+/* ---------- one website: labeled screen tabs in the top bar ---------- */
+.hc-nav { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-pill); background: var(--surface-3); }
+.hc-nav button {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: var(--h-md); padding: 0 14px;
+  border-radius: var(--r-pill); font: var(--t-footnote); font-weight: 500; color: var(--label-2);
+  transition: background var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease);
+}
+.hc-nav button:hover { color: var(--label); }
+.hc-nav button.on { background: var(--surface-1); color: var(--label); box-shadow: var(--shadow-knob); font-weight: 600; }
+.hc-nav em { font-style: normal; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--critical); color: #fff; font: var(--t-caption); font-weight: 600; display: inline-grid; place-items: center; }
+@media (max-width: 1279px) { .hc-nav span { display: none; } }
+
+/* Map screen: one map, two camera modes */
+.hc-mapmode {
+  position: absolute; z-index: var(--z-popover); top: 80px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 2px; border-radius: var(--r-pill);
+  background: var(--mat-map); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+  border: 1px solid var(--mat-map-rim); box-shadow: var(--shadow-map);
+}
+.hc-mapmode button { display: inline-flex; align-items: center; gap: 6px; height: var(--h-sm); padding: 0 12px; border-radius: var(--r-pill); font: var(--t-footnote); font-weight: 500; color: var(--label-2); }
+.hc-mapmode button[aria-selected='true'] { background: var(--action); color: var(--on-action); }
+
+/* Units (Overview) sits under the shared top bar; the top bar is its navigation. */
+.py-app.screen-overview .ov { top: 68px; grid-template-columns: 1fr; }
+.py-app.screen-overview .ov-rail { display: none; }
