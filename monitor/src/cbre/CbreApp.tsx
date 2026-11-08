@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { agoText, clockText, useScenarioNow, useView } from '../data/derive';
+import { financeOf } from './finance';
+import { FinancePanel } from './FinancePanel';
 import { useHeadcount } from '../data/HeadcountProvider';
 import { Icon, type IconName } from '../ui/Icon';
 import { fmtUsd, impacts, type BuildingImpact } from './model';
@@ -72,6 +74,9 @@ export function CbreApp() {
           </a>
           <a href="#detail">
             <Icon name="sliders" size={17} /> Systems
+          </a>
+          <a href="#finance">
+            <Icon name="activity" size={17} /> Finance
           </a>
           <a href="/?view=tree">
             <Icon name="route" size={17} /> Building view <Icon name="chevronRight" size={13} />
@@ -278,6 +283,8 @@ export function CbreApp() {
           </div>
         </section>
 
+        <FinancePanel all={all} cur={cur} horizon={horizon} label={HORIZONS.find((x) => x.h === horizon)?.label ?? `${horizon}H`} onSelect={setSel} />
+
         <section className="cb-panel" id="buildings">
           <div className="cb-panel-h">
             <span>All buildings</span>
@@ -290,6 +297,9 @@ export function CbreApp() {
                 <th>Downtime</th>
                 <th>Revenue at risk</th>
                 <th>Repairs</th>
+                <th>Recovery</th>
+                <th>Retained</th>
+                <th>NOI hit</th>
                 <th>Next step</th>
               </tr>
             </thead>
@@ -304,6 +314,9 @@ export function CbreApp() {
                   <td className="mono">{Math.round(x.downtimeH)} h</td>
                   <td className="mono">{fmtUsd(x.revenueAtRisk(horizon))}</td>
                   <td className="mono">{fmtUsd(x.repairCost)}</td>
+                  <td className="mono good">{fmtUsd(financeOf(x, horizon).propClaim + financeOf(x, horizon).rentClaim)}</td>
+                  <td className="mono bad">{fmtUsd(financeOf(x, horizon).retained)}</td>
+                  <td className="mono">{(financeOf(x, horizon).noiHit * 100).toFixed(1)}%</td>
                   <td className="cb-next">{x.action}</td>
                 </tr>
               ))}

@@ -285,11 +285,13 @@ npm run dev         # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .e
 
 Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
 
-Screens and deep links: `/` network graph, `/?view=tree&b=<building>` building view, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
+Screens and deep links: `/` network graph, `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
 
 ### CBRE view (estimate model)
 
 The CBRE screen turns the same live events into per-building operational impact. It does **not** use or change the HPI and never ranks people. Inputs: confirmed quake epicenters (shaking at a building falls off linearly to zero at 520 map units), confirmed fires, and the share of nearby nodes on battery (buildings without their own nodes, the office and warehouse, use homes within 260 units, labeled "inferred"). Each building system (structure, elevator, power, HVAC, fire suppression, water) gets a failure probability from those inputs and the building's risk score. Expected downtime is the largest system downtime weighted by its probability (+48 h with a fire); expected repair cost is the probability-weighted sum. Revenue at risk = hourly revenue × occupancy × min(horizon, downtime) × max(failure odds, 0.6 × power-out share), plus a quarter month of revenue with a fire. All rents, costs, tenants and repair figures in `monitor/src/cbre/portfolio.ts` are invented.
+
+The finance panel (`monitor/src/cbre/finance.ts`) re-prices those estimates with **synthetic** insurance and operating assumptions. Gross loss = revenue at risk over the horizon + expected repair cost. Deductible = 2% of building value when the loss is quake-driven (shaking > 5% and no fire), otherwise a flat $25,000. Property claim = max(0, repairs − deductible). Loss-of-rents claim = revenue lost after a 72 h waiting period. Retained loss = max(0, gross − property claim − loss-of-rents claim). Annual NOI = 12 × monthly revenue × occupancy × (1 − operating-expense ratio), with ratios of 0.42 multifamily, 0.38 office and 0.18 warehouse; NOI impact = retained loss ÷ annual NOI. The cash-flow chart books lost rent as it accrues and spreads repairs (and the matching property claim) evenly across the predicted downtime. None of this is a real policy, quote or forecast.
 
 ## The "found curve" (planned)
 
