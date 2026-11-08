@@ -114,8 +114,8 @@ function SpacetimeSource({ children }: { children: ReactNode }) {
       });
       return;
     }
-    const uri = import.meta.env.VITE_SPACETIME_URI ?? 'ws://localhost:3000';
-    const db = import.meta.env.VITE_SPACETIME_DB ?? 'headcount';
+    const uri = import.meta.env.VITE_SPACETIME_URI ?? 'wss://maincloud.spacetimedb.com';
+    const db = import.meta.env.VITE_SPACETIME_DB ?? 'rescuedb';
     let conn: any;
     let frame = 0;
 
