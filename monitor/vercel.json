@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/draft.mjs": {
+      "maxDuration": 60
+    }
+  }
+}
