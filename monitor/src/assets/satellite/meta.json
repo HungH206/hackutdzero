@@ -1,0 +1,7 @@
+{
+  "placeholder": true,
+  "site": { "x0": -40, "x1": 1040, "z0": -30, "z1": 680 },
+  "ppm": 3.2,
+  "region": { "x0": -1120, "x1": 2120, "z0": -740, "z1": 1390 },
+  "sun": { "azimuthDeg": 315, "elevationDeg": 52 }
+}
