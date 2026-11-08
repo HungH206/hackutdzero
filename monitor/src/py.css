@@ -350,3 +350,6 @@
 /* Units (Overview) sits under the shared top bar; the top bar is its navigation. */
 .py-app.screen-overview .ov { top: 68px; grid-template-columns: 1fr; }
 .py-app.screen-overview .ov-rail { display: none; }
+/* Units: the shared top bar already carries search, bell and clock. */
+.py-app.screen-overview .ov-top-r { display: none; }
+.py-app .demo-btn { white-space: nowrap; }

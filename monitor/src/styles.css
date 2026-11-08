@@ -491,7 +491,7 @@ h1, h2, p { margin: 0; }
   scrollbar-width: thin; scrollbar-color: var(--panel-3) transparent;
 }
 .an-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-.an-head h1 { font-size: 30px; font-weight: 400; letter-spacing: -0.02em; margin-top: 4px; }
+.an-head h1 { font: var(--t-headline); letter-spacing: var(--t-headline-track); margin-top: 4px; }
 .bento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .card { background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .span-2 { grid-column: span 2; }
@@ -592,3 +592,38 @@ h1, h2, p { margin: 0; }
 .ident-code { display: block; margin-top: 4px; font-size: 10px; line-height: 1.45; word-break: break-all; user-select: all; color: var(--text); }
 .ident-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ident-actions .btn { height: 28px; padding: 0 10px; font-size: 12px; }
+
+/* Dashboard KPI row (R05): big number, a rule, and the comparison under it. */
+.an-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.4fr); gap: 12px; margin-bottom: 12px; }
+.an-kpi, .an-next { background: var(--surface-1); border: 1px solid var(--separator); border-radius: var(--r-panel); box-shadow: var(--shadow-panel); padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.an-kpi-l { font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.an-kpi-v { font: var(--t-headline); color: var(--label); font-variant-numeric: tabular-nums; padding-bottom: 8px; border-bottom: 2px solid var(--label); }
+.an-kpi-v small { font: var(--t-callout); color: var(--label-3); }
+.an-kpi-was { font: var(--t-footnote); color: var(--label-3); }
+.an-kpi-was b { color: var(--label); font-weight: 600; }
+.an-next ol { margin: 0; padding: 0; list-style: none; display: grid; }
+.an-next button { width: 100%; display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; padding: 6px 4px; border-radius: var(--r-badge); text-align: left; }
+.an-next button:hover { background: var(--surface-2); }
+.an-next-r { display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-badge); background: var(--surface-3); font: var(--t-caption); font-weight: 600; color: var(--label-2); }
+.an-next-r[data-band='critical'] { background: var(--critical); color: #fff; }
+.an-next-r[data-band='high'] { background: var(--waiting-tint); color: var(--waiting-ink); }
+.an-next-n { font: var(--t-footnote); font-weight: 600; color: var(--label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-next-n small { font-weight: 400; color: var(--label-3); margin-left: 4px; }
+.an-next-h { font: var(--t-subhead); font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.an-next-empty { margin: 0; display: flex; gap: 6px; align-items: center; font: var(--t-footnote); color: var(--label-2); }
+.an-next-empty svg { color: var(--ok); }
+@media (max-width: 1279px) { .an-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .an-next { grid-column: span 2; } }
+/* Bubble matrix (R04): buildings x status, circles sized by household count. */
+.an-matrix { margin-top: 12px; }
+.an-matrix table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.an-matrix th, .an-matrix td { padding: 8px 10px; border-bottom: 1px solid var(--separator); text-align: center; font: var(--t-footnote); }
+.an-matrix thead th { font: var(--t-caption); letter-spacing: var(--t-kicker-track); text-transform: uppercase; color: var(--label-3); }
+.an-matrix tbody th { text-align: left; font-weight: 600; color: var(--label); }
+.an-matrix td { height: 52px; }
+.an-bubble { display: inline-grid; place-items: center; border-radius: 50%; font: var(--t-caption); font-weight: 600; border: 1px solid; }
+.an-bubble[data-s='critical'] { background: var(--critical-tint); border-color: var(--critical); color: var(--critical-ink); }
+.an-bubble[data-s='waiting'] { background: var(--waiting-tint); border-color: var(--waiting); color: var(--waiting-ink); }
+.an-bubble[data-s='ok'] { background: var(--ok-tint); border-color: var(--ok); color: var(--ok-ink); }
+.an-bubble[data-s='assisted'] { background: var(--assisted-tint); border-color: var(--assisted); color: var(--assisted-ink); }
+.an-bubble[data-s='unknown'] { background: var(--unknown-tint); border-color: var(--unknown); color: var(--unknown-ink); }
+.an-matrix thead th:first-child { text-align: left; }
