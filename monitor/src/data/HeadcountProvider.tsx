@@ -119,6 +119,26 @@ function SpacetimeSource({ children }: { children: ReactNode }) {
     let conn: any;
     let frame = 0;
 
+    // Keep this browser's identity across reloads. An anonymous connection is issued NEW
+    // credentials every time, so without this the dashboard would get a different identity on
+    // every refresh and any dispatcher promotion (see scripts/promote.mjs) would be lost.
+    // Per database, so pointing at another module does not reuse the wrong identity.
+    const tokenKey = `headcount.token.${db}`;
+    const readToken = () => {
+      try {
+        return localStorage.getItem(tokenKey) ?? undefined;
+      } catch {
+        return undefined; // Private window or blocked storage: fall back to a fresh identity.
+      }
+    };
+    const saveToken = (token: string) => {
+      try {
+        if (token) localStorage.setItem(tokenKey, token);
+      } catch {
+        /* not fatal: the identity just will not survive a reload */
+      }
+    };
+
     const read = (c: any) => {
       const s: Snapshot = { ...emptySnapshot };
       for (const [key, table] of TABLE_KEYS) {
@@ -142,9 +162,12 @@ function SpacetimeSource({ children }: { children: ReactNode }) {
       conn = m.DbConnection.builder()
         .withUri(uri)
         .withDatabaseName(db)
+        .withToken(readToken())
         .withAutomaticReconnect()
-        .onConnect((c: any) => {
-          setConnection({ source: 'spacetimedb', status: 'live', detail: `Live: SpacetimeDB ${db} @ ${uri}` });
+        .onAutomaticReconnect((_c: unknown, _identity: unknown, token: string) => saveToken(token))
+        .onConnect((c: any, identity: { toHexString(): string }, token: string) => {
+          saveToken(token);
+          setConnection({ source: 'spacetimedb', status: 'live', detail: `Live: SpacetimeDB ${db} @ ${uri}`, identity: identity.toHexString() });
           for (const [, table] of [...TABLE_KEYS, ['clock', 'clock'] as const]) {
             const handle = c.db[table];
             if (!handle) continue;

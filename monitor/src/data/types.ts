@@ -167,6 +167,8 @@ export interface ConnectionInfo {
   source: SourceKind;
   status: 'connecting' | 'live' | 'error';
   detail: string;
+  /** This client's SpacetimeDB identity (hex). A dispatcher is an identity an operator has added. */
+  identity?: string;
 }
 
 /** Convert a row from either source: bigints become numbers. */

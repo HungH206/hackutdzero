@@ -144,6 +144,9 @@ export function Header(p: Props) {
 
       <div className="py-right">
         {p.demo}
+        <span className="py-sim" title="Every household, sensor reading and responder here is synthetic. No real emergency service is contacted.">
+          Simulation
+        </span>
         <span className="py-clock mono" title="Scenario time">
           {clockText(p.now)}
           {ff > 0 && <em>+{ff}m</em>}
