@@ -4,8 +4,6 @@ import { bandOf } from '../data/derive';
 import type { Disaster, Household } from '../data/types';
 import { BAND_COLOR } from './Gauges';
 import { Icon, iconPath, type IconName } from './Icon';
-import { massesOf } from './command/model';
-import { drawSitePlan, SITE, SITE_D, SITE_W } from './command/sitePlan';
 
 export type Layer = 'heat' | 'hazard' | 'responders' | 'outage' | 'power' | 'coverage';
 export const LAYERS: { id: Layer; label: string; icon: IconName }[] = [
@@ -138,13 +136,6 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
 
   const zoomPct = Math.round((FULL.w / box.w) * 100);
 
-  // The same fictional satellite paint as the 3D main map (one map base).
-  const geoKey = `${view.building.size}:${view.households.length}`;
-  const satellite = useMemo(
-    () => (view.building.size ? drawSitePlan(massesOf(view.building.values(), view.households), view.households).toDataURL('image/jpeg', 0.86) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [geoKey],
-  );
   const unknownZone = useMemo(() => {
     const pts = view.households.filter((h) => !h.hasSensor);
     if (!pts.length) return null;
@@ -199,11 +190,11 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
       >
         <defs>
           <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="7" height="7" fill="#e9e5dd" />
-            <line x1="0" y1="0" x2="0" y2="7" stroke="#d6cfc2" strokeWidth="2.5" />
+            <rect width="7" height="7" fill="#081010" />
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#1a2b2a" strokeWidth="2.5" />
           </pattern>
           <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M20 0H0V20" fill="none" stroke="#000000" strokeOpacity="0.03" />
+            <path d="M20 0H0V20" fill="none" stroke="#ffffff" strokeOpacity="0.025" />
           </pattern>
           <radialGradient id="vignette" cx="50%" cy="45%" r="75%">
             <stop offset="55%" stopColor="#000" stopOpacity="0" />
@@ -236,23 +227,22 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         </defs>
 
         {/* Basemap, drawn in-app so the demo never depends on map tiles. */}
-        <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="#e9e5dd" />
+        <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="#050b0b" />
         <rect className="bg" x={-600} y={-600} width={W + 1200} height={H + 1200} fill="url(#grid)" />
-        {satellite && <image href={satellite} x={SITE.x0} y={SITE.z0} width={SITE_W} height={SITE_D} preserveAspectRatio="none" className="sat" />}
-        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616 L1200 900 L-200 900z" fill="none" />
-        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616" stroke="none" fill="none" />
+        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616 L1200 900 L-200 900z" fill="#0d1519" />
+        <path d="M-200 612 C 180 588, 300 650, 470 606 S 760 586, 1200 616" stroke="#1c3340" strokeWidth="3" fill="none" />
         <text x={30} y={636} className="map-label water">
           Cedar Creek
         </text>
-        <path d="M880 20 h120 v170 h-80 q-50 -30 -40 -90z" fill="none" stroke="none" />
+        <path d="M880 20 h120 v170 h-80 q-50 -30 -40 -90z" fill="#0b1712" stroke="#13281d" />
         <text x={905} y={60} className="map-label park">
           Hollow Park
         </text>
         {Array.from({ length: 24 }, (_, i) => (
-          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="none" strokeWidth={2} />
+          <line key={`v${i}`} x1={i * 45 + 10} y1={-40} x2={i * 45 + 10} y2={680} stroke="#0b1616" strokeWidth={2} />
         ))}
         {Array.from({ length: 16 }, (_, i) => (
-          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="none" strokeWidth={2} />
+          <line key={`h${i}`} x1={-40} y1={i * 45 + 8} x2={1040} y2={i * 45 + 8} stroke="#0b1616" strokeWidth={2} />
         ))}
         {[
           { d: 'M-60 62 H1060', n: 'RIDGE RD', x: 760, y: 56 },
@@ -262,8 +252,8 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
           { d: 'M642 -40 V680', n: 'MILL ST', x: 0, y: 0, vx: 636, vy: 470 },
         ].map((r) => (
           <g key={r.n}>
-            
-            
+            <path d={r.d} stroke="#0f1d1d" strokeWidth={15} />
+            <path d={r.d} stroke="#1d3332" strokeWidth={1} strokeDasharray="5 9" />
             {'vx' in r ? (
               <text x={r.vx} y={r.vy} className="map-label road" transform={`rotate(-90 ${r.vx} ${r.vy})`}>
                 {r.n}
@@ -294,7 +284,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
 
         {unknownZone && (
           <g>
-            <rect {...unknownZone} rx={10} fill="url(#hatch)" stroke="#8a8f98" strokeDasharray="4 4" />
+            <rect {...unknownZone} rx={10} fill="url(#hatch)" stroke="#3b5352" strokeDasharray="4 4" />
             <text x={unknownZone.x + 10} y={unknownZone.y - 8} className="map-label bldg-name">
               UNKNOWN · NO SENSORS (NOT “SAFE”)
             </text>
@@ -302,8 +292,8 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         )}
 
         <g transform={`translate(${STATION.x} ${STATION.y})`}>
-          <rect x={-16} y={-16} width={32} height={32} rx={9} fill="#ffffff" stroke="#1f6feb" />
-          <path d={iconPath('siren')} transform="translate(-9 -9) scale(0.75)" fill="none" stroke="#1f6feb" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <rect x={-16} y={-16} width={32} height={32} rx={9} fill="#0f1b2e" stroke="#3b82f6" />
+          <path d={iconPath('siren')} transform="translate(-9 -9) scale(0.75)" fill="none" stroke="#93c5fd" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           <text x={-22} y={34} className="map-label station" textAnchor="end">
             STATION 7 · EMS (SIM)
           </text>
@@ -318,8 +308,13 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         {layers.has('hazard') &&
           quakes.map((q) => (
             <g key={q.id} pointerEvents="none">
-              <circle cx={q.x} cy={q.y} r={300} fill="none" stroke="#d92d20" strokeWidth={1.5} strokeDasharray="6 5" />
-              <path d={`M${q.x - 6} ${q.y}H${q.x + 6}M${q.x} ${q.y - 6}V${q.y + 6}`} stroke="#d92d20" strokeWidth={1.5} />
+              <circle cx={q.x} cy={q.y} r={440} fill="url(#shock)" />
+              {[0, 1, 2].map((i) => (
+                <circle key={i} cx={q.x} cy={q.y} r={60} className="shockwave" style={{ animationDelay: `${i * 1.2}s` }} />
+              ))}
+              {[150, 300, 450].map((r) => (
+                <circle key={r} cx={q.x} cy={q.y} r={r} fill="none" stroke="#ff4d5e" strokeOpacity={0.28} strokeDasharray="3 7" />
+              ))}
               <text x={q.x + 10} y={q.y - 10} className="map-label epi">
                 EPICENTER
               </text>
@@ -336,7 +331,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
             {movers.units.map((u) => (
               <g key={`u${u.h.id}`}>
                 <polyline points={u.route.map((p) => `${p.x},${p.y}`).join(' ')} className="route" />
-                <g transform={`translate(${u.pos.x} ${u.pos.y})`} filter={undefined}>
+                <g transform={`translate(${u.pos.x} ${u.pos.y})`} filter="url(#glow)">
                   <circle r={9} className={`unit${u.arrived ? ' arrived' : ''}`} />
                   <path d={iconPath('siren')} transform="translate(-6 -6) scale(0.5)" fill="none" stroke="#fff" strokeWidth={2.4} />
                 </g>
@@ -360,7 +355,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
         {selHousehold && (
           <g pointerEvents="none">
             <circle cx={selHousehold.x} cy={selHousehold.y} r={34} className="sel-ring" />
-            <circle cx={selHousehold.x} cy={selHousehold.y} r={34} fill="#000000" fillOpacity={0.04} />
+            <circle cx={selHousehold.x} cy={selHousehold.y} r={34} fill="#ffffff" fillOpacity={0.03} />
           </g>
         )}
 
@@ -375,7 +370,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
           const done = h.finalState === 'found_ok' || h.finalState === 'assisted';
           const r = done ? 7 : !h.hasSensor ? 8 : 6 + hpi * 0.1;
           const tth = p && p.tthMin >= 0 ? Math.round(p.tthMin) : null;
-          const fill = h.finalState === 'found_ok' ? 'var(--ok)' : h.finalState === 'assisted' ? 'var(--assisted)' : band === 'critical' ? 'var(--critical)' : band === 'high' || band === 'guarded' ? 'var(--waiting)' : 'var(--unknown)';
+          const fill = h.finalState === 'found_ok' ? 'var(--ok)' : h.finalState === 'assisted' ? 'var(--assisted)' : `url(#orb-${band})`;
           return (
             <g
               key={h.id}
@@ -397,19 +392,19 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
                 cx={h.x}
                 cy={h.y}
                 r={r}
-                fill={h.hasSensor ? fill : '#8a8f98'}
-                stroke={hot ? '#1d1d1f' : '#ffffff'}
+                fill={h.hasSensor ? fill : '#10151d'}
+                stroke={hot ? '#fff' : h.hasSensor ? 'rgba(0,0,0,.55)' : '#64748b'}
                 strokeWidth={hot ? 2 : 1}
                 strokeDasharray={offline && h.hasSensor && !done ? '2.5 2' : undefined}
                 className="orb"
-                filter={undefined}
+                filter={band === 'critical' && !done ? 'url(#glow)' : undefined}
               />
               {done && (
                 <path
                   d={iconPath(h.finalState === 'found_ok' ? 'check' : 'shield')}
                   transform={`translate(${h.x - 5} ${h.y - 5}) scale(0.42)`}
                   fill="none"
-                  stroke="#ffffff"
+                  stroke="#06110c"
                   strokeWidth={3.2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -447,7 +442,7 @@ export function MapCanvas({ view, disasters, now, layers, hovered, selected, onH
             </g>
           );
         })}
-        
+        <rect x={-600} y={-600} width={W + 1200} height={H + 1200} fill="url(#vignette)" pointerEvents="none" />
       </svg>
 
       <div className="map-tools" role="toolbar" aria-label="Map controls">

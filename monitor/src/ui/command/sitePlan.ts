@@ -99,102 +99,25 @@ for (const h of ROADS.filter((r) => r.a[1] === r.b[1]))
     if (x >= Math.min(h.a[0], h.b[0]) && x <= Math.max(h.a[0], h.b[0])) CROSSINGS.push([x, z]);
   }
 
-
-export type Palette = { [K in keyof typeof PLAN]: string };
-
-/** Satellite paint (brief section 5.2 A): true-color aerial palette for the
- * fictional town. PLAN stays as the light "Map" alternative. */
-export const SAT: Palette = {
-  land: '#5d6046',
-  lawn: '#66664e',
-  park: '#4f5b44',
-  parkPath: '#8a8576',
-  paving: '#7d7a74',
-  parking: '#45474a',
-  stall: '#c9c6bf',
-  sidewalk: '#9a968f',
-  curb: '#86827b',
-  road: '#45474a',
-  major: '#4b4e51',
-  mark: '#e9e6df',
-  majorMark: '#e3d29a',
-  water: '#2c3b3a',
-  waterDeep: '#36493f',
-  bank: '#4f5b44',
-  shore: '#4f5b44',
-  yard: '#5f6449',
-  rail: '#6b675f',
-  concrete: '#8c8984',
-};
-
-/** Seeded, so the town looks identical on every load. */
-function rng(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** Photo finish: two octaves of smooth value noise (about +/-6% lightness),
- * a slight warm cast at 0.85 saturation, and 3% film grain. */
-function satelliteFinish(g: CanvasRenderingContext2D, cv: HTMLCanvasElement) {
-  const r = rng(7);
-  g.save();
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  for (const [div, alpha] of [[32, 0.13], [8, 0.08]] as const) {
-    const n = document.createElement('canvas');
-    n.width = Math.ceil(cv.width / div);
-    n.height = Math.ceil(cv.height / div);
-    const ng = n.getContext('2d')!;
-    const img = ng.createImageData(n.width, n.height);
-    for (let i = 0; i < img.data.length; i += 4) {
-      const v = 128 + (r() - 0.5) * 255;
-      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
-      img.data[i + 3] = 255;
-    }
-    ng.putImageData(img, 0, 0);
-    g.globalAlpha = alpha;
-    g.globalCompositeOperation = 'soft-light';
-    g.imageSmoothingEnabled = true;
-    g.drawImage(n, 0, 0, cv.width, cv.height);
-  }
-  g.restore();
-  const img = g.getImageData(0, 0, cv.width, cv.height);
-  const d = img.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const R = d[i]!, G = d[i + 1]!, B = d[i + 2]!;
-    const l = 0.299 * R + 0.587 * G + 0.114 * B;
-    const grain = (r() - 0.5) * 16;
-    d[i] = l + (R - l) * 0.85 + 3 + grain;
-    d[i + 1] = l + (G - l) * 0.85 + 1 + grain;
-    d[i + 2] = l + (B - l) * 0.85 - 2 + grain;
-  }
-  g.putImageData(img, 0, 0);
-}
-
-export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], P: Palette = SAT): HTMLCanvasElement {
+export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[]): HTMLCanvasElement {
   const cv = document.createElement('canvas');
   cv.width = Math.round(SITE_W * PPM);
   cv.height = Math.round(SITE_D * PPM);
   const g = cv.getContext('2d')!;
   g.setTransform(PPM, 0, 0, PPM, -SITE.x0 * PPM, -SITE.z0 * PPM);
 
-  g.fillStyle = P.land;
+  g.fillStyle = PLAN.land;
   g.fillRect(SITE.x0, SITE.z0, SITE_W, SITE_D);
 
   // parks with a looping footpath
-  g.fillStyle = P.park;
+  g.fillStyle = PLAN.park;
   g.beginPath();
   PARKS.ne(g);
   g.fill();
   g.beginPath();
   PARKS.nw(g);
   g.fill();
-  g.strokeStyle = P.parkPath;
+  g.strokeStyle = PLAN.parkPath;
   g.lineWidth = 3;
   g.lineCap = 'round';
   g.beginPath();
@@ -209,12 +132,12 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
 
   // creek: grassy shore, water, a darker channel, the bank line
   g.lineJoin = 'round';
-  g.strokeStyle = P.shore;
+  g.strokeStyle = PLAN.shore;
   g.lineWidth = 22;
   g.beginPath();
   creekPath(g);
   g.stroke();
-  g.fillStyle = P.water;
+  g.fillStyle = PLAN.water;
   g.beginPath();
   creekPath(g);
   g.lineTo(1100, 760);
@@ -223,13 +146,13 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   g.fill();
   g.save();
   g.translate(0, 26);
-  g.strokeStyle = P.waterDeep;
+  g.strokeStyle = PLAN.waterDeep;
   g.lineWidth = 26;
   g.beginPath();
   creekPath(g);
   g.stroke();
   g.restore();
-  g.strokeStyle = P.bank;
+  g.strokeStyle = PLAN.bank;
   g.lineWidth = 1.1;
   g.beginPath();
   creekPath(g);
@@ -239,17 +162,17 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   for (const m of masses) {
     const L = m.lot;
     if (m.kind === 'multifamily') {
-      g.fillStyle = P.lawn;
+      g.fillStyle = PLAN.lawn;
       rr(g, L.x0, L.z0, L.x1, L.z1, 6);
       g.fill();
       // parking court south of the block: two rows of stalls around an aisle
       const pz0 = m.z1 + 8;
       const pz1 = L.z1 - 5;
       if (pz1 - pz0 > 16) {
-        g.fillStyle = P.parking;
+        g.fillStyle = PLAN.parking;
         rr(g, L.x0 + 10, pz0, L.x1 - 10, pz1, 3);
         g.fill();
-        g.strokeStyle = P.stall;
+        g.strokeStyle = PLAN.stall;
         g.lineWidth = 0.35;
         g.beginPath();
         for (let x = L.x0 + 14; x <= L.x1 - 14; x += 2.8) {
@@ -261,7 +184,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
         g.stroke();
       }
       // front walk from the entrance to the parking court
-      g.fillStyle = P.paving;
+      g.fillStyle = PLAN.paving;
       const cx = (m.x0 + m.x1) / 2;
       g.fillRect(cx - 2, m.z1, 4, 8);
       // driveway out to the nearest street
@@ -269,10 +192,10 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
       if (north) g.fillRect(L.x0 + 22, L.z1 - 5, 7, 287 - (L.z1 - 5));
       else if (L.z1 < 528) g.fillRect(L.x0 + 22, L.z1 - 5, 7, 528 - (L.z1 - 5));
     } else if (m.kind === 'office') {
-      g.fillStyle = P.paving;
+      g.fillStyle = PLAN.paving;
       rr(g, L.x0, L.z0, L.x1, L.z1, 4);
       g.fill();
-      g.strokeStyle = P.curb;
+      g.strokeStyle = PLAN.curb;
       g.lineWidth = 0.4;
       g.beginPath();
       for (let x = L.x0 + 6; x < L.x1; x += 6) {
@@ -280,14 +203,14 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
         g.lineTo(x, L.z1 - 1);
       }
       g.stroke();
-      g.fillStyle = P.paving;
+      g.fillStyle = PLAN.paving;
       g.fillRect(m.x0, m.z0, m.x1 - m.x0, m.z1 - m.z0);
     } else {
-      g.fillStyle = P.concrete;
+      g.fillStyle = PLAN.concrete;
       rr(g, L.x0, L.z0, L.x1, L.z1, 3);
       g.fill();
       // truck bays along the north apron
-      g.strokeStyle = P.stall;
+      g.strokeStyle = PLAN.stall;
       g.lineWidth = 0.4;
       g.beginPath();
       for (let x = m.x0 + 8; x < m.x1 - 8; x += 9) {
@@ -304,18 +227,18 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
     const x1 = h.x + 26;
     const z0 = h.y - 30;
     const z1 = Math.min(h.y + 14, 612);
-    g.fillStyle = P.yard;
+    g.fillStyle = PLAN.yard;
     rr(g, x0, z0, x1, z1, 3);
     g.fill();
-    g.strokeStyle = P.rail;
+    g.strokeStyle = PLAN.rail;
     g.lineWidth = 0.35;
     g.stroke();
-    g.fillStyle = P.paving;
+    g.fillStyle = PLAN.paving;
     g.fillRect(h.x + HOUSE.w / 2 - 6, 548, 5, h.y - HOUSE.d / 2 - 548);
   }
 
   // station yard
-  g.fillStyle = P.concrete;
+  g.fillStyle = PLAN.concrete;
   rr(g, 922, 232, 1004, 287, 2);
   g.fill();
 
@@ -328,9 +251,9 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   };
   const order = [...ROADS].sort((a, b) => Number(a.major) - Number(b.major));
   for (const [extra, color] of [
-    [8.6, P.curb],
-    [7.8, P.sidewalk],
-    [0.9, P.curb],
+    [8.6, PLAN.curb],
+    [7.8, PLAN.sidewalk],
+    [0.9, PLAN.curb],
   ] as const) {
     for (const r of order) {
       line(r);
@@ -341,7 +264,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   }
   for (const r of order) {
     line(r);
-    g.strokeStyle = r.major ? P.major : P.road;
+    g.strokeStyle = r.major ? PLAN.major : PLAN.road;
     g.lineWidth = roadWidth(r);
     g.stroke();
   }
@@ -377,7 +300,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
         seg(a, b, 0.55);
       } else seg(a, b, 0);
     }
-    g.strokeStyle = r.major ? P.majorMark : P.mark;
+    g.strokeStyle = r.major ? PLAN.majorMark : PLAN.mark;
     g.lineWidth = r.major ? 0.4 : 0.45;
     g.setLineDash(r.major ? [] : [3.5, 5]);
     g.stroke();
@@ -387,7 +310,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
         seg(a, b, -4.8);
         seg(a, b, 4.8);
       }
-      g.strokeStyle = P.mark;
+      g.strokeStyle = PLAN.mark;
       g.lineWidth = 0.35;
       g.setLineDash([3, 6]);
       g.stroke();
@@ -396,7 +319,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   }
 
   // zebra crossings on every approach
-  g.fillStyle = P.mark;
+  g.fillStyle = PLAN.mark;
   for (const [x, z] of CROSSINGS) {
     const hRoad = ROADS.find((r) => r.a[1] === r.b[1] && r.a[1] === z)!;
     const vRoad = ROADS.find((r) => r.a[0] === r.b[0] && r.a[0] === x)!;
@@ -415,7 +338,7 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   }
 
   // bridges where the side streets cross the creek
-  g.strokeStyle = P.rail;
+  g.strokeStyle = PLAN.rail;
   g.lineWidth = 0.8;
   g.beginPath();
   for (const r of ROADS.filter((r) => r.a[0] === r.b[0])) {
@@ -429,6 +352,5 @@ export function drawSitePlan(masses: Mass[], homes: { x: number; y: number }[], 
   }
   g.stroke();
 
-  if (P === SAT) satelliteFinish(g, cv);
   return cv;
 }
