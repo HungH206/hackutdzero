@@ -166,6 +166,10 @@ export interface ReasonInputs {
   commsOutage: boolean;
   tth: number | null;
   override: number;
+  /** Minutes offline when the node is offline and no event explains it, else null. Triggers a "verify" note. */
+  offlineMin?: number | null;
+  /** The node was already offline before the event began. */
+  preEventOffline?: boolean;
 }
 
 /** Plain-English reason, most important facts first. */
@@ -188,6 +192,10 @@ export function reason(x: ReasonInputs): string {
     parts.push(`silent ${Math.round(x.minutesSilent)} min`);
     if (x.recentMotion) parts.push('moving, not responding');
     if (x.commsOutage) parts.push('area comms outage');
+  }
+  if (x.preEventOffline) parts.push('node was already offline before the event');
+  if (x.offlineMin != null && x.offlineMin >= 1) {
+    parts.push(`node offline ${Math.round(x.offlineMin)} min, cause unknown: verify (not assumed hurt)`);
   }
   if (x.checkin === 'pending') parts.push('check-in sent');
   if (x.checkin === 'ok') parts.push('answered OK');

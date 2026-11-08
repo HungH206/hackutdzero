@@ -120,6 +120,7 @@ export function CbreApp() {
             Open in dispatch <Icon name="route" size={15} />
           </a>
           <div className="cb-top-r">
+            <span className="cb-pill mono" title="Every number here is synthetic.">Simulation</span>
             <span className="cb-pill mono">{clockText(now)}</span>
             <span className={`cb-pill conn ${connection.status}`}>
               <i /> {connection.source === 'local' ? 'Local data' : 'SpacetimeDB'}

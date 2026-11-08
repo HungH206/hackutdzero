@@ -5,6 +5,7 @@
 //   npm run dashboards:live     connect to the published SpacetimeDB module
 //   add -- --attach             reuse a dev server already running on devPort
 //   add -- --lan                listen on 0.0.0.0 so other devices (phone, Pi) can open them
+//   add -- --all                also open dashboards marked "optional" in dashboards.json (CBRE)
 //
 // Every port is a plain TCP forward to the same Vite server, so all dashboards
 // share one simulation and one set of live data.
@@ -15,8 +16,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { devPort, dashboards } = JSON.parse(readFileSync(path.join(root, 'dashboards.json'), 'utf8'));
+const config = JSON.parse(readFileSync(path.join(root, 'dashboards.json'), 'utf8'));
+const { devPort } = config;
 const args = new Set(process.argv.slice(2));
+// The State Farm / welfare-check dashboards are the primary demo. CBRE is optional and off by default.
+const dashboards = config.dashboards.filter((d) => args.has('--all') || !d.optional);
 const attach = args.has('--attach');
 const host = args.has('--lan') ? '0.0.0.0' : '127.0.0.1';
 const target = '127.0.0.1';

@@ -7,6 +7,6 @@
     { "port": 5183, "view": "map", "label": "Live map" },
     { "port": 5184, "view": "tree", "label": "Building view" },
     { "port": 5185, "view": "analytics", "label": "Analytics" },
-    { "port": 5186, "view": "cbre", "label": "CBRE property operations" }
+    { "port": 5186, "view": "cbre", "label": "CBRE property operations (optional, deprioritized)", "optional": true }
   ]
 }

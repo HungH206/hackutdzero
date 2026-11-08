@@ -1,12 +1,51 @@
 import { useState } from 'react';
 import type { View } from '../data/derive';
+import { useHeadcount } from '../data/HeadcountProvider';
 import type { Actions } from '../data/types';
 import { Icon, type IconName } from './Icon';
+
+/**
+ * On a real server these controls are operator-only, and every browser starts read-only.
+ * `npm run promote` promotes whoever is connected, so nobody has to copy an identity; the
+ * copy button is here for the case where the promoting terminal is on another machine.
+ */
+function IdentityNote({ identity }: { identity: string }) {
+  const [copied, setCopied] = useState<'identity' | 'command' | null>(null);
+  const copy = async (what: 'identity' | 'command', text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setCopied(null); // Clipboard blocked (not on localhost or https): the text below is selectable.
+    }
+  };
+  return (
+    <div className="ident-note">
+      <p className="fine">
+        Controls are for dispatchers only. To make this browser a dispatcher, run <code>npm run promote</code> in <code>monitor/</code> and reload. It promotes whoever is connected, so there is nothing
+        to copy.
+      </p>
+      <p className="fine">
+        This browser is <code className="ident-code">{identity}</code>
+      </p>
+      <div className="ident-actions">
+        <button className="btn" onClick={() => void copy('identity', identity)}>
+          <Icon name="user" size={13} /> {copied === 'identity' ? 'Copied' : 'Copy identity'}
+        </button>
+        <button className="btn" onClick={() => void copy('command', `npm run promote -- ${identity}`)}>
+          <Icon name="plus" size={13} /> {copied === 'command' ? 'Copied' : 'Copy command'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Every button calls a sim_* reducer on the module. Nothing is faked locally.
 export function DemoPanel({ view, actions, onError }: { view: View; actions: Actions; onError(msg: string): void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { connection } = useHeadcount();
   const alvarez = view.households.find((h) => h.name === 'Mrs. Alvarez');
   const chen = view.households.find((h) => h.name === 'Mr. Chen');
   const elm = [...view.building.values()].find((b) => b.name.startsWith('Elm'));
@@ -34,7 +73,8 @@ export function DemoPanel({ view, actions, onError }: { view: View; actions: Act
       {open && (
         <div className="demo-pop glass" role="dialog" aria-label="Demo controls">
           <div className="eyebrow">Simulation controls</div>
-          <p className="fine">Triggers simulated sensor events on the server. All households are synthetic.</p>
+          <p className="fine">SIMULATION. Triggers simulated sensor events on the server. All households are synthetic, and no real emergency service is contacted.</p>
+          {connection.identity && <IdentityNote identity={connection.identity} />}
           <div className="trig-grid">
             {triggers.map((t) => (
               <button key={t.title} className="trig" disabled={busy} onClick={() => run(t.fn)}>

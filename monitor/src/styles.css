@@ -592,3 +592,10 @@ h1, h2, p { margin: 0; }
 .pills { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; height: 36px; overflow: hidden; }
 .has-detail .map-tools { right: calc(var(--detail-w) + var(--gap) * 2); }
 
+
+/* Dispatcher promotion note in the demo panel. The identity is 66 characters, so it wraps. */
+.ident-note { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: var(--r-md); background: var(--panel-2); border: 1px solid var(--line); }
+.ident-note p { margin: 0; }
+.ident-code { display: block; margin-top: 4px; font-size: 10px; line-height: 1.45; word-break: break-all; user-select: all; color: var(--text); }
+.ident-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ident-actions .btn { height: 28px; padding: 0 10px; font-size: 12px; }
