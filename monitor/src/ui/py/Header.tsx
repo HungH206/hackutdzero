@@ -44,13 +44,12 @@ export function Header(p: Props) {
         <button className="py-sq" onClick={() => setMenu((m) => !m)} aria-label="Views" aria-expanded={menu}>
           <Icon name="list" size={18} />
         </button>
-        <svg viewBox="0 0 36 36" width="34" height="34" aria-hidden="true" className="py-logo">
-          <path d="M12 3h12v6h-4v4h-4V9h-4zM3 12h6v4h4v4H9v4H3zM33 12h-6v4h-4v4h4v4h6zM12 33h12v-6h-4v-4h-4v4h-4z" fill="none" stroke="#e2bf7b" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M18 12.5l1.6 4 4 1.5-4 1.5-1.6 4-1.6-4-4-1.5 4-1.5z" fill="#fff4dc" />
-        </svg>
+        <span className="py-logo" aria-hidden="true">
+          <Icon name="house" size={16} />
+        </span>
         <div className="py-brand-t">
           <b>Headcount</b>
-          <span>Disaster Response</span>
+          <span>Cedar Hollow · simulated</span>
         </div>
         {menu && (
           <nav className="py-menu" aria-label="Views">
