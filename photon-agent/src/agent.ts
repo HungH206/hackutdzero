@@ -18,6 +18,9 @@ export interface AgentOptions {
   followUpMs?: number;
   ringAfterMs?: number;
   voice?: VoiceHooks;
+  /** The dispatcher's phone. Texts from it are questions about the emergency, or APPROVE, never a resident's check-in. */
+  dispatcherHandle?: string;
+  answerDispatcher?: (s: Snapshot, question: string) => Promise<string>;
 }
 
 export interface Candidate { contact: Contact; minutes: number }
@@ -32,6 +35,8 @@ export class Agent {
   private readonly followUpMs: number;
   private readonly ringAfterMs: number;
   private readonly voice: VoiceHooks | null;
+  private readonly dispatcherHandle: string | null;
+  private readonly answerDispatcher: ((s: Snapshot, question: string) => Promise<string>) | null;
   private readonly checkinSentAt = new Map<string, number>();
   private snap: Snapshot | null = null;
 
@@ -45,6 +50,8 @@ export class Agent {
     this.followUpMs = o.followUpMs ?? 240_000;
     this.ringAfterMs = o.ringAfterMs ?? 45_000;
     this.voice = o.voice ?? null;
+    this.dispatcherHandle = o.dispatcherHandle ?? null;
+    this.answerDispatcher = o.answerDispatcher ?? null;
   }
 
   // ---------- Reads ----------
@@ -101,6 +108,26 @@ export class Agent {
     return { sent, skipped };
   }
 
+  /** The dispatcher texting in. A question gets a grounded answer; APPROVE approves what is waiting. */
+  private async dispatcherReply(to: Contact, text: string, key: string) {
+    const s = await this.fresh();
+    if (/^\s*approve(\s+all)?\s*[.!]?\s*$/i.test(text)) {
+      const waiting = s.tasks.filter((t) => t.state === 'proposed');
+      try {
+        for (const t of waiting) await this.db.approveTask(t.id, 'Dispatcher, by text');
+      } catch (error) {
+        await this.say(to, `I could not approve that: ${error instanceof Error ? error.message : 'unknown error'}`, key, null);
+        return;
+      }
+      await this.say(to, waiting.length
+        ? `Approved ${waiting.length} neighbor ${waiting.length === 1 ? 'check' : 'checks'}. The nearest confirmed-safe neighbor is being asked.`
+        : 'Nothing is waiting for approval.', key, null);
+      return;
+    }
+    const answer = this.answerDispatcher ? await this.answerDispatcher(s, text) : `${s.summary?.eventActive ? `${s.summary.accounted} of ${s.summary.total} accounted for.` : 'No active emergency.'}`;
+    await this.say(to, answer, key, null);
+  }
+
   // ---------- Inbound ----------
 
   async handle(m: Inbound): Promise<void> {
@@ -123,6 +150,11 @@ export class Agent {
       return;
     }
     if (contact.stopped) this.store.patch(m.handle, { stopped: false });
+
+    if (this.dispatcherHandle && m.handle === this.dispatcherHandle) {
+      await this.dispatcherReply(this.store.contact(m.handle)!, m.text, replyKey);
+      return;
+    }
 
     const s = await this.fresh();
     const active = this.eventActive(s);

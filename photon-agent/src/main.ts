@@ -2,14 +2,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startAdmin } from './admin.ts';
 import { Agent } from './agent.ts';
-import { Briefing, draftAnnouncement } from './briefing.ts';
+import { Briefing, answerDispatcher, draftAnnouncement } from './briefing.ts';
 import { geminiLlm } from './llm.ts';
 import { assignLine, photonClient, photonSend, subscribe } from './photon.ts';
 import { SpacetimeHttp } from './spacetime.ts';
 import { Store } from './store.ts';
 import { keywordUnderstand, modelTranslate, modelUnderstand } from './understand.ts';
 import { Voice, callSummary, startVoiceServer } from './voice.ts';
-import type { Send, Understand } from './types.ts';
+import type { Send, Snapshot, Understand } from './types.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
@@ -39,7 +39,8 @@ const voice = env.RETELL_API_KEY && env.RETELL_AGENT_ID && env.VOICE_FROM_NUMBER
   : null;
 if (!voice) console.warn('Voice is off. Set RETELL_API_KEY, RETELL_AGENT_ID, VOICE_FROM_NUMBER and DISPATCHER_PHONE to turn it on.');
 
-const agent: Agent = new Agent({ db, store, send, understand, ...(voice ? { voice } : {}) });
+const dispatcherAsk = { ...(env.DISPATCHER_PHONE ? { dispatcherHandle: env.DISPATCHER_PHONE } : {}), answerDispatcher: (s: Snapshot, q: string) => answerDispatcher(llm, s, q) };
+const agent: Agent = new Agent({ db, store, send, understand, ...dispatcherAsk, ...(voice ? { voice } : {}) });
 if (voice) startVoiceServer(voice, env.RETELL_API_KEY!, Number(env.VOICE_PORT ?? 8788));
 if (live) subscribe(env.PHOTON_PROJECT_ID!, env.PHOTON_API_KEY!, store, (m) => agent.handle(m));
 const briefing = new Briefing(llm);
@@ -48,7 +49,7 @@ const briefing = new Briefing(llm);
 let captured: { to: string; text: string }[] = [];
 let lastSource = 'none';
 const sandbox = new Agent({
-  db, store,
+  db, store, ...dispatcherAsk,
   send: async (to, text) => { captured.push({ to: to.name, text }); },
   understand: async (ctx) => { const u = await understand(ctx); lastSource = u.source; return u; },
 });

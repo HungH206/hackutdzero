@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Briefing, draftAnnouncement, facts, rulesBriefing, templateAnnouncement } from '../src/briefing.ts';
+import { Briefing, answerDispatcher, draftAnnouncement, facts, rulesBriefing, templateAnnouncement } from '../src/briefing.ts';
+import { guardMessage } from '../src/guard.ts';
 import type { Household, Snapshot } from '../src/types.ts';
 
 const home = (id: number, name: string, over: Partial<Household> = {}): Household => ({
@@ -103,4 +104,25 @@ test('a model draft that promises help is replaced by the template', async () =>
 
 test('a failed model call falls back to the template', async () => {
   assert.equal((await draftAnnouncement(async () => null, quake())).source, 'template');
+});
+
+test('dispatcher answers fall back to the plain briefing without a model', async () => {
+  const a = await answerDispatcher(null, snap(), 'what is happening?');
+  assert.match(a, /1 of 3 accounted for/);
+  assert.match(a, /Mr\. Chen/);
+});
+
+test('a safe model answer for the dispatcher is used as written', async () => {
+  const a = await answerDispatcher(async () => 'Mr. Chen in 3A asked for help. Mrs. Alvarez is unconfirmed.', snap(), 'who needs help?');
+  assert.equal(a, 'Mr. Chen in 3A asked for help. Mrs. Alvarez is unconfirmed.');
+});
+
+test('a dispatcher answer that promises help is replaced', async () => {
+  const a = await answerDispatcher(async () => 'Do not worry, help is on the way to Mr. Chen.', snap(), 'status?');
+  assert.doesNotMatch(a, /on the way/);
+});
+
+test('the approve confirmation passes the promise guard', () => {
+  const text = 'Approved 1 neighbor check. The nearest confirmed-safe neighbor is being asked.';
+  assert.equal(guardMessage(text, false, 'fallback').blocked, false);
 });
