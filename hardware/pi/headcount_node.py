@@ -9,7 +9,7 @@ Sensors (digital, active level configurable):
   shock   -> report_event(kind="shake", value=peak g estimate, durationS)
   flame   -> report_event(kind="flame", value=1)
   heat    -> report_event(kind="temp", value=10)
-  motion  -> report_event(kind="motion") (person present)
+  shock is on physical pin 16 (GPIO 23)
   buzzer  -> beeps when an event reaches the server
 Every 10 s it sends heartbeat(householdId, onBattery=False).
 
@@ -23,7 +23,8 @@ SERVER = os.environ.get("HC_SERVER", "https://maincloud.spacetimedb.com")
 DB = os.environ.get("HC_DB", "rescuedb")
 HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
 # Wiring of the team node (matches sensor_node.py on the Pi).
-PINS = {"sound": 17, "heat": 27, "flame": 22, "motion": 23, "shock": 24}
+# Shock module is on physical pin 16 = GPIO 23 (idle 0, short HIGH pulse per impact).
+PINS = {"sound": 17, "heat": 27, "flame": 22, "shock": 23}
 PIN_BUZZER = 25
 TOKEN_FILE = os.path.expanduser("~/.headcount_token")
 DRY = "--dry" in sys.argv  # print instead of calling the server
@@ -67,35 +68,35 @@ def main():
     token = get_token()
     print("Headcount node: household %d on %s/%s" % (HOUSEHOLD, SERVER, DB))
     if not DRY:
-        print("Warming up PIR (30s)..."); time.sleep(30)
+        time.sleep(1)
     idle = {n: s.value for n, s in sensors.items()}
-    idle["motion"] = 0
+    idle["shock"] = 0  # shock pulses HIGH on impact
+    prev_shock = 0; pulses = []; shake_sent = 0
 
     def beep(n=1):
         for _ in range(n):
             buzzer.on(); time.sleep(0.12); buzzer.off(); time.sleep(0.08)
 
-    last_hb = 0; shake_start = None; shake_last = 0; shake_hits = 0
-    sent = {"flame": 0, "heat": 0, "motion": 0}
+    last_hb = 0
+    sent = {"flame": 0, "heat": 0}
     while True:
         t = time.time()
         if t - last_hb >= 10:
             call(token, "heartbeat", {"householdId": HOUSEHOLD, "onBattery": False}); last_hb = t
         hit = {n: s.value != idle[n] for n, s in sensors.items()}
 
-        # Shock (or loud sound with it): a burst of hits spanning >= 2 s is sustained shaking.
-        # The shock module barely fires on this node; the sound sensor picks up the vibration strongly.
-        if hit["shock"] or hit["sound"]:
-            shake_hits += 1; shake_last = t
-            shake_start = shake_start or t
-        elif shake_start and t - shake_last > 1.5:
-            dur = shake_last - shake_start
-            print("shock burst %.1fs, %d hits" % (dur, shake_hits))
-            if dur >= 0.5:
-                g = min(2.0, 0.3 + shake_hits / 100.0)
-                print("shake %.1fs ~%.2fg" % (dur, g))
-                if call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "shake", "value": g, "durationS": round(dur, 1)}): beep(1)
-            shake_start = None; shake_hits = 0
+        # Shock: each rising edge is an impact; report one shake per 10 s.
+        v = sensors["shock"].value
+        if v and not prev_shock:
+            pulses.append(t); print("shock pulse")
+        prev_shock = v
+        pulses = [x for x in pulses if t - x <= 3.0]
+        if len(pulses) >= 1 and t - shake_sent > 10:
+            dur = max(1.0, pulses[-1] - pulses[0])
+            g = min(2.0, 0.3 + 0.2 * len(pulses))
+            print("shake: %d impacts in %.1fs" % (len(pulses), dur))
+            shake_sent = t; pulses = []
+            if call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "shake", "value": g, "durationS": round(dur, 1)}): beep(1)
 
         if hit["flame"] and t - sent["flame"] > 30:
             print("flame"); sent["flame"] = t
@@ -103,9 +104,6 @@ def main():
         if hit["heat"] and t - sent["heat"] > 30:
             print("heat"); sent["heat"] = t
             call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "temp", "value": 10.0, "durationS": 5.0})
-        if hit["motion"] and t - sent["motion"] > 20:
-            sent["motion"] = t
-            call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "motion", "value": 1.0, "durationS": 0.0})
 
         time.sleep(0.01)
 
