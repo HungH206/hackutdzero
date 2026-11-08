@@ -26,6 +26,7 @@ HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
 # Shock module is on physical pin 16 = GPIO 23 (idle 0, short HIGH pulse per impact).
 PINS = {"sound": 17, "heat": 27, "flame": 22, "shock": 23}
 PIN_BUZZER = 25
+SHOCK_AS_SUSTAINED = os.environ.get("HC_SHOCK_AS_SUSTAINED", "1") == "1"
 TOKEN_FILE = os.path.expanduser("~/.headcount_token")
 DRY = "--dry" in sys.argv  # print instead of calling the server
 
@@ -85,18 +86,30 @@ def main():
             call(token, "heartbeat", {"householdId": HOUSEHOLD, "onBattery": False}); last_hb = t
         hit = {n: s.value != idle[n] for n, s in sensors.items()}
 
-        # Shock: each rising edge is an impact; report one shake per 10 s.
+        # Shock: impacts less than 3 s apart form one shaking episode. An episode that
+        # lasts 3.5 s is reported as sustained shaking right away; a shorter one is
+        # reported when it ends (the module logs it as a filtered short spike).
         v = sensors["shock"].value
         if v and not prev_shock:
+            if not pulses or t - pulses[-1] > 3.0:
+                pulses = []; shake_sent = 0
             pulses.append(t); print("shock pulse")
         prev_shock = v
-        pulses = [x for x in pulses if t - x <= 3.0]
-        if len(pulses) >= 1 and t - shake_sent > 10:
-            dur = max(1.0, pulses[-1] - pulses[0])
-            g = min(2.0, 0.3 + 0.2 * len(pulses))
-            print("shake: %d impacts in %.1fs" % (len(pulses), dur))
-            shake_sent = t; pulses = []
-            if call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "shake", "value": g, "durationS": round(dur, 1)}): beep(1)
+        if pulses and not shake_sent:
+            dur = pulses[-1] - pulses[0] + 0.5
+            # This vibration switch gives about one pulse per shaking session, so it cannot
+            # measure duration. With HC_SHOCK_AS_SUSTAINED=1 (default) a pulse is reported
+            # as a 4 s episode; the module still needs 2+ homes to confirm a quake.
+            if SHOCK_AS_SUSTAINED:
+                dur = max(dur, 4.0)
+            ended = t - pulses[-1] > 3.0
+            if dur >= 3.5 or ended:
+                g = min(2.0, 0.3 + 0.15 * len(pulses))
+                print("shake: %d impacts over %.1fs%s" % (len(pulses), dur, " (sustained)" if dur >= 3.5 else " (short)"))
+                shake_sent = t
+                if call(token, "report_event", {"householdId": HOUSEHOLD, "kind": "shake", "value": g, "durationS": round(dur, 1)}): beep(1)
+        if pulses and t - pulses[-1] > 3.0:
+            pulses = []
 
         if hit["flame"] and t - sent["flame"] > 30:
             print("flame"); sent["flame"] = t
