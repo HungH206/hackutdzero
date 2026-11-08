@@ -272,10 +272,6 @@
 .py-app.screen-graph .py-d-reason { color: var(--ink-2); }
 .py-app.screen-graph .py-d-tiles > div { background: var(--surface-2); border-color: var(--hair); }
 .py-app.screen-graph .py-d-tiles svg { color: var(--ink-2); }
-.py-app.screen-graph .py-d-acts button { background: #fff; }
-.py-app.screen-graph .py-d-acts .ok { color: #157a48; }
-.py-app.screen-graph .py-d-acts .help { color: #b42318; }
-.py-app.screen-graph .py-d-acts .as { color: var(--assisted-ink); }
 .py-app.screen-graph .py-state.found_ok { color: #157a48; }
 .py-app.screen-graph .py-state.found_needs_help { color: #b42318; }
 .py-app.screen-graph .py-state.assisted { color: var(--assisted-ink); }

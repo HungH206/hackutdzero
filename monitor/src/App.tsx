@@ -32,9 +32,11 @@ export function App() {
   // Deep links: ?view=graph|tree|map|analytics|log, ?h=<household id>, ?b=<building id>.
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const [screen, setScreen] = useState<Screen>(() => {
-    const v = params.get('view') ?? portView();
-    return SCREENS.includes(v as Screen) ? (v as Screen) : 'graph';
+    // One website. The Dashboard is home; ?view= still deep-links a screen.
+    const v = params.get('view') ?? 'analytics';
+    return v === 'houses' ? 'map' : SCREENS.includes(v as Screen) ? (v as Screen) : 'analytics';
   });
+  const [mapMode, setMapMode] = useState<'top' | 'tilt'>(() => (params.get('view') === 'houses' || portView() === 'houses' ? 'tilt' : 'top'));
   const [selected, setSelected] = useState<number | null>(() => (params.get('h') ? Number(params.get('h')) : null));
   const [buildingId, setBuildingId] = useState(() => Number(params.get('b') ?? 0));
   const [cat, setCat] = useState<Cat | null>(null);
@@ -51,8 +53,8 @@ export function App() {
   const concerns = concernsOf(view);
 
   const select = useCallback((id: number | null) => {
+    // Selecting a household opens the same inspector wherever you are.
     setSelected(id);
-    setScreen((s) => (id !== null && (s === 'analytics' || s === 'log' || s === 'overview') ? 'graph' : s));
   }, []);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setScreen((s) => (s === 'analytics' || s === 'log' || s === 'overview' || s === 'houses' ? 'graph' : s));
+        setScreen((s) => (s === 'graph' || s === 'map' ? s : 'graph'));
         requestAnimationFrame(() => dock.current?.focus());
       } else if (e.key === 'Escape') setSelected(null);
     };
@@ -149,7 +151,7 @@ export function App() {
           {dockEl}
         </div>
       )}
-      {graphish && selectedId !== null && (
+      {screen !== 'map' && screen !== 'overview' && selectedId !== null && (
         <PyDetail
           key={selectedId}
           id={selectedId}
@@ -158,11 +160,14 @@ export function App() {
           actions={actions}
           onClose={() => setSelected(null)}
           onError={setError}
-          onFullRecord={() => setScreen('map')}
+          onFullRecord={() => {
+            setMapMode('top');
+            setScreen('map');
+          }}
         />
       )}
 
-      {screen === 'houses' && (
+      {screen === 'map' && mapMode === 'tilt' && (
         <Houses
           view={view}
           now={now}
@@ -170,12 +175,23 @@ export function App() {
           onSelect={setSelected}
           onOpen={(id) => {
             setSelected(id);
-            setScreen('map');
+            setMapMode('top');
           }}
         />
       )}
 
       {screen === 'map' && (
+        <div className="hc-mapmode" role="tablist" aria-label="Map view">
+          <button role="tab" aria-selected={mapMode === 'top'} onClick={() => setMapMode('top')}>
+            <Icon name="map" size={14} /> Top-down
+          </button>
+          <button role="tab" aria-selected={mapMode === 'tilt'} onClick={() => setMapMode('tilt')}>
+            <Icon name="home" size={14} /> Tilted
+          </button>
+        </div>
+      )}
+
+      {screen === 'map' && mapMode === 'top' && (
         <div className="stage">
           <MapCanvas
             view={view}
@@ -226,6 +242,7 @@ export function App() {
           }}
           onSelectGlobal={(id) => {
             setSelected(id);
+            setMapMode('top');
             setScreen('map');
           }}
           onSearch={() => {
@@ -236,7 +253,7 @@ export function App() {
         />
       )}
 
-      {screen !== 'overview' && <Header
+      {<Header
         screen={screen}
         onScreen={(s) => {
           setScreen(s);
