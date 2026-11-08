@@ -1,0 +1,123 @@
+/* Toasts, the command dock and the New simulation menu.
+   Composes ../kit/kit.css with values from ../../theme/tokens.css only.
+   Spec: ../../theme/SYSTEM.md §4 (toast position) and §6. */
+
+/* ---------- toast stack ---------- */
+.hc-toasts {
+  position: fixed; z-index: var(--z-toast);
+  top: calc(var(--topbar-h) + var(--margin-map));
+  right: var(--margin-map);
+  width: min(var(--toast-w), calc(100vw - var(--margin-map) * 2));
+  display: flex; flex-direction: column; gap: var(--s-2);
+  pointer-events: none;
+  transition: right var(--dur-panel) var(--ease);
+}
+/* Never over the inspector: the stack moves to its left while it is open. */
+.has-detail .hc-toasts,
+body:has([data-ui='inspector']) .hc-toasts {
+  right: max(var(--margin-map), min(calc(var(--margin-map) * 2 + var(--inspector-w)), calc(100vw - var(--toast-w) - var(--margin-map))));
+}
+
+.hc-toasts__slot { pointer-events: auto; animation: hc-toast-in var(--dur-panel) var(--ease) backwards; }
+.hc-toasts__slot[data-leaving='true'] { pointer-events: none; animation: hc-toast-out var(--dur-panel) var(--ease) forwards; }
+@keyframes hc-toast-in { from { opacity: 0; transform: translateX(var(--s-4)); } }
+@keyframes hc-toast-out { to { opacity: 0; transform: translateX(var(--s-4)); } }
+
+.hc-toasts .hc-toast { width: 100%; }
+.hc-toast { transition: background-color var(--dur-hover) var(--ease), transform var(--dur-press) var(--ease); }
+.hc-toast[data-openable='true'] { cursor: pointer; }
+.hc-toast[data-openable='true']:hover { background: var(--surface-2); }
+.hc-toast[data-openable='true']:active:not(:has(.hc-btn:active)) { transform: scale(0.97); }
+.hc-toast:has(.hc-toast__open:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.hc-toast .hc-alert__text {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+  overflow: hidden;
+  letter-spacing: var(--t-footnote-track);
+}
+/* The 28px close button sits on the title's line, its glyph on the card's padding. */
+.hc-toast .hc-alert__aside { margin: -4px -6px 0 0; align-items: center; }
+.hc-btn.hc-toast__close::after { inset: -8px; }
+
+/* ---------- command dock ---------- */
+.hc-dock {
+  position: relative;
+  container: hc-dock / inline-size;
+  display: flex; flex-direction: column; gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-4);
+}
+
+.hc-dock__kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
+.hc-dock__kpi { min-width: 0; padding: 0 var(--s-3); }
+.hc-dock__kpi:first-child { padding-left: 0; }
+.hc-dock__kpi + .hc-dock__kpi { border-left: 1px solid var(--separator); }
+.hc-dock__kpi dd { margin: 0; white-space: nowrap; }
+.hc-dock__kpi .hc-tile__label span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hc-dock__kpi .hc-tile__label svg { flex: none; }
+.hc-dock__kpi[data-status] .hc-tile__label svg { color: var(--status-fill); }
+.hc-dock__kpi[data-status] .hc-tile__value { color: var(--status-ink); }
+.hc-dock__kpi[data-status] .hc-tile__value small { color: var(--status-ink); }
+.hc-dock__kpi .hc-skel { display: block; width: 64px; height: 23px; }
+
+.hc-dock__field { position: relative; padding-right: var(--s-2); }
+.hc-dock__field input { text-overflow: ellipsis; }
+.hc-input.hc-dock__field input { height: var(--h-lg); }
+.hc-input.hc-dock__field .hc-dock__run svg { color: var(--on-action); }
+.hc-input.hc-dock__field .hc-dock__clear svg { color: var(--label-3); }
+.hc-dock__field .hc-kbd { margin-right: var(--s-1); }
+
+.hc-dock__chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.hc-dock__chip { position: relative; transition: background-color var(--dur-hover) var(--ease), transform var(--dur-press) var(--ease); }
+.hc-dock__chip::after { content: ''; position: absolute; inset: -8px 0; } /* 44px hit target */
+.hc-dock__chip:active:not(:disabled) { transform: scale(0.97); }
+.hc-dock__foot { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
+
+/* Results float above the dock, which always sits at the bottom of the screen. */
+.hc-dock__results {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + var(--s-2));
+  min-width: 0; max-height: min(560px, calc(100vh - var(--topbar-h) - 248px));
+  padding: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  animation: hc-dock-in var(--dur-hover) var(--ease) backwards;
+}
+@keyframes hc-dock-in { from { opacity: 0; transform: translateY(var(--s-1)); } }
+
+.hc-dock__group + .hc-dock__group { border-top: 1px solid var(--separator); }
+.hc-dock__group .hc-pop__title { padding-left: var(--s-4); padding-right: var(--s-4); }
+.hc-dock__cmds { display: flex; flex-direction: column; padding: 0 6px 6px; }
+.hc-dock__cmds .hc-menu-item span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hc-dock__cmds .hc-menu-item small { flex: none; }
+.hc-dock__cmds .hc-menu-item[aria-selected='true'] { background: var(--surface-2); }
+
+/* Side panel form (Analytics): the same parts with the results in the panel itself. */
+.hc-dock--side { height: 100%; min-height: 0; }
+.hc-dock__list {
+  flex: 1; min-height: 0;
+  margin: 0 calc(var(--s-4) * -1) calc(var(--s-4) * -1);
+  border-top: 1px solid var(--separator);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+@container hc-dock (max-width: 440px) {
+  .hc-dock__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--s-3); }
+  .hc-dock__kpi:nth-child(odd) { padding-left: 0; border-left: 0; }
+}
+
+/* ---------- New simulation menu ---------- */
+.hc-sim { position: relative; display: inline-flex; }
+.hc-sim__pop {
+  position: absolute; top: calc(100% + var(--s-2)); right: 0;
+  width: var(--side-w);
+  max-width: calc(100vw - var(--margin-map) * 2);
+  max-height: calc(100vh - var(--topbar-h) - var(--margin-map) * 2);
+  overflow-y: auto; overscroll-behavior: contain;
+  animation: hc-sim-in var(--dur-hover) var(--ease) backwards;
+}
+@keyframes hc-sim-in { from { opacity: 0; transform: translateY(calc(var(--s-1) * -1)); } }
+.hc-sim__item:disabled { opacity: 0.45; }
+.hc-sim__sep { margin: 6px 10px; }
+.hc-sim__note { padding: var(--s-1) 10px var(--s-2); font: var(--t-caption); letter-spacing: var(--t-caption-track); color: var(--label-3); }
+.hc-sim__ident { display: flex; flex-direction: column; gap: var(--s-2); margin: var(--s-1); font: var(--t-footnote); letter-spacing: var(--t-footnote-track); color: var(--label-2); }
+.hc-sim__ident b { font-weight: 600; color: var(--label); }
+.hc-sim__id { font: 500 0.75rem/1.33 var(--font-mono); color: var(--label); word-break: break-all; user-select: all; }
+.hc-sim__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
