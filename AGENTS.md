@@ -51,6 +51,8 @@ Also needed for the demo: a **demo control panel** (trigger quake / fire / power
 ## Built so far (branch `monitor-dashboard`)
 - `/spacetimedb`: SpacetimeDB 2.x TypeScript module. Tables: `clock`, `building`, `household`, `node`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `override_log`, `timeline`, `tick_schedule`. The HPI math is in `src/hpi.ts` and is called only from `recompute_hpi`. Demo simulation is done by `sim_*` reducers plus a 5 s scheduled `tick`. Test with `npm test`, which runs in the SDK's in-memory datastore.
 - `/monitor`: Vite + React dashboard. `npm run dev:local` runs the module in-process (no server). `npm run dev` connects to a published module after `npm run generate`.
+  Screens: network graph, operations overview, houses, building view, live map, analytics, event log, plus the CBRE view (`?app=cbre`). `npm run dashboards` serves each on its own localhost port (5180-5186), all sharing one backend.
+  **Graphics revamp handoff:** `docs/GRAPHICS_HANDOFF.md` (data contract, per-screen requirements, design references, what not to touch).
 - Not yet done: publishing to a real SpacetimeDB server, reconciling with Hung's schema, responders/assignments.
 
 ## Proposed data model (a proposal: reconcile with Hung's actual schema before relying on it)
