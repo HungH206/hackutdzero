@@ -19,7 +19,8 @@ Context: read `AGENTS.md` first, and `README.md` for the product and the HPI mat
 - [ ] Confirm the team's beginner-track eligibility (needs 3 of 4 first-time hackers)
 
 ## P0: backend (SpacetimeDB)
-Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in-memory datastore. Not yet published to a real server. No `responder`/`assignment` tables yet; `heartbeat` lives on `node`.
+- [x] [Codex] Publish Maincloud `rescuedb`, align monitor/CLI targets, and correct deployment documentation; 20/20 hosted live checks, 85/85 backend tests, monitor build pass
+Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in-memory datastore. Published to Maincloud `rescuedb` on Nov 8, 2026. No `responder`/`assignment` tables yet; `heartbeat` lives on `node`.
 - [ ] Reconcile the data model in `AGENTS.md` with the schema already started locally
 - [x] [Avin] Tables: `building`, `household`, `node`, `heartbeat`, `reading_event`, `disaster`, `checkin`, `escalation`, `priority`, `responder`, `assignment`, `override_log`
 - [x] [Avin] Reducers: `register_node`, `heartbeat`, `report_event`, `submit_checkin`
@@ -29,7 +30,7 @@ Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in
 - [x] [Avin] End states per household and an "accounted for" count
 - [x] [Avin] `override_priority` with required reason, logged
 - [x] [Avin] Unit checks: reproduce the three worked examples from the README (expected HPI 95.0, 38.8, 94.5)
-- [ ] Publish the module to a **hosted** server and share how to connect (host/db name, no secrets in the repo). Published and verified on a local server only.
+- [x] [Codex] Publish to Maincloud `rescuedb`; monitor defaults to `wss://maincloud.spacetimedb.com`.
 - [x] Local server: publish, `npm run generate`, and `npm run verify:live` (two client identities: sync and authorization) all work
 - [ ] Drive the React dashboard in two real browser windows against the published module (the SDK path is verified; the browser UI has not been)
 

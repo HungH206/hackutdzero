@@ -9,12 +9,11 @@
 //   npm run promote -- 0xc200…   promote one identity (what the New Simulation panel shows)
 //   npm run promote -- --list    show who is connected and who is already an operator
 //
-// Env: SPACETIME_DB (default headcount), SPACETIME_SERVER (default local).
-// Run it from the monitor/ directory, or anywhere with `node scripts/promote.mjs`.
+// Uses the same Vite environment as the monitor; defaults to Maincloud rescuedb.
+// Run through npm from the monitor/ directory.
 import { execFileSync } from 'node:child_process';
 
-const DB = process.env.SPACETIME_DB ?? process.env.VITE_SPACETIME_DB ?? 'headcount';
-const SERVER = process.env.SPACETIME_SERVER ?? 'local';
+import { database as DB, server as SERVER } from './target.mjs';
 const args = process.argv.slice(2);
 const listOnly = args.includes('--list');
 const given = args.filter((a) => !a.startsWith('--'));

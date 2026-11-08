@@ -234,7 +234,7 @@ Update this table honestly before submitting.
 |---|---|
 | Concept, HPI formula, escalation design | Done (design) |
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
-| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). Target server: SpacetimeDB Maincloud, database **`rescuedb`** (the RescueGrid workspace). `rescuegrid-test/rescuegrid` now points its `spacetime.json` and publish scripts at this module. **This module has not been published to `rescuedb` yet**; until it is, `rescuedb` still holds the earlier starter template. |
+| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb`; 85 automated tests. Published to **Maincloud `rescuedb`** on Nov 8, 2026, with 40 synthetic households. The existing `rescuegrid-dev` database was left untouched. **20/20 live SDK checks passed** against Maincloud (sync, authorization, token reuse, scoring and escalation). |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
 | Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
@@ -249,59 +249,61 @@ Update this table honestly before submitting.
 
 ## Running it
 
-For the complete local database + monitor startup sequence, see [Run locally](docs/RUN_LOCAL.md). From `monitor/`, `npm run db:start` starts the server, `npm run db:publish` publishes safely to `local/headcount`, and `npm run db:status` checks the household count. Local database and monitor HTTP availability were verified; browser interaction remains a manual check.
+### Shared live database (Maincloud)
 
-### Backend: SpacetimeDB module (`/spacetimedb`)
+The Headcount module is published at **`rescuedb`**, using **`wss://maincloud.spacetimedb.com`**. [Database dashboard](https://spacetimedb.com/rescuedb). All default monitor, publish, status, promotion and live-verification commands target this database. No local database server is needed.
 
 ```bash
 cd spacetimedb
-npm install
-npm test            # HPI worked examples + full scenario in the in-memory test datastore
+npm ci
 npm run typecheck
+npm test
+cd ../monitor
+npm ci
+npm run generate
+npm run db:status
+npm run dev
 ```
 
-To run it for real, install the SpacetimeDB CLI ([spacetimedb.com/install](https://spacetimedb.com/install)), then:
-
-```bash
-spacetime start                                                      # local server on ws://localhost:3000
-spacetime publish --server local --module-path spacetimedb headcount
-```
-
-Pass `--server local` explicitly: the CLI's default server may be a hosted one. Run these from this repo, not from another project folder: the CLI reads a `spacetime.json` from the working directory and will otherwise target the wrong database.
-
-The publisher becomes the first operator, and every browser starts read-only. To make a browser a dispatcher, open the dashboard and then:
+Open the Local URL printed by Vite. With the dashboard connected, in another terminal:
 
 ```bash
 cd monitor
-npm run promote            # promotes every connected client
-npm run promote -- --list  # or: show who is connected and who is already a dispatcher
-npm run promote -- 0x…     # or: promote one identity (shown in the New Simulation panel)
+npm run promote -- --list
+npm run promote
 ```
 
-The dashboard saves its token in `localStorage`, so a browser keeps the same identity across reloads and only needs promoting once. (An anonymous SpacetimeDB connection is issued a new identity every time, so without that saved token a promotion would be lost on the next refresh.) A private window, another browser, or cleared site data is a new identity and needs promoting again.
-spacetime start                                  # local server on ws://localhost:3000
-spacetime publish --module-path spacetimedb headcount
-# shared team database (RescueGrid on Maincloud):
-spacetime publish --server maincloud --module-path spacetimedb rescuedb
-```
+Reload the dashboard to enable dispatcher controls. `promote` grants access to every currently connected identity; use the Copy command button in New Simulation to promote just one. The publishing CLI identity must have operator access. The browser keeps its token in localStorage, so reloads retain the identity. Another browser profile or cleared site data requires promotion again.
 
-The CLI commands above have not been run yet. Publishing this module over the starter template in `rescuedb` changes the schema completely, so the first publish needs the CLI's clear-data option; that is safe only while `rescuedb` holds no data worth keeping. Check flag names against `spacetime publish --help` for your CLI version.
+The browser defaults to Maincloud even without an environment file. Optional overrides go in `monitor/.env.local` (see `.env.example`); restart Vite after editing. Node scripts read the same development environment as Vite and derive their CLI server from the WebSocket URL. `SPACETIME_DB` and `SPACETIME_SERVER` are optional CLI-only overrides; keep them consistent with the monitor target.
 
-### Monitor dashboard (`/monitor`)
+To deploy later module changes:
 
 ```bash
 cd monitor
-npm install
-npm run dev:local   # no server needed: runs the module in-process (local fallback)
+npm run db:publish
+npm run generate
+npm run db:status
 ```
 
-With a published module instead:
+Publishing refuses data deletion (`--delete-data=never`). Review any migration conflict rather than clearing the shared database. Publishing the module does not deploy the monitor website; run the monitor locally or host its built frontend separately.
 
 ```bash
-npm run generate     # spacetime generate -> src/module_bindings (generated, not committed)
-npm run dev          # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .env.example)
-npm run verify:live  # two client identities against the published module: sync + authorization
+npm run verify:live
 ```
+
+**Live verification resets the target simulation.** Run it between demos, not during an active session. It tests subscriptions, authorization and token reuse with independent SDK clients and removes its temporary dispatcher afterward. Real-browser interaction in two windows is still a manual check.
+
+### Optional local server or fallback
+
+See [local server instructions](docs/RUN_LOCAL.md). The explicit local commands are `npm run db:start`, `npm run db:publish:local` and `npm run db:status:local`. To connect the monitor and promotion commands to local Headcount, set:
+
+```dotenv
+VITE_SPACETIME_URI=ws://localhost:3000
+VITE_SPACETIME_DB=headcount
+```
+
+Remove those overrides to return to Maincloud. `npm run dev:local` instead uses an in-process fallback; it does not connect to Maincloud.
 
 The walkthrough for the primary demo, an earthquake at Alder Court, is in [`docs/DEMO_SCENARIO.md`](docs/DEMO_SCENARIO.md).
 

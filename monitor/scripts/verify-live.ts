@@ -6,17 +6,14 @@
 //   3. the observer cannot override, simulate, or resolve anything, and the dispatcher can,
 //   4. a refused override leaves no audit row and an accepted one is audited and synced.
 //
-//   spacetime start                                              # local server on :3000
-//   spacetime publish --server local --module-path ../spacetimedb headcount
+//   npm run db:publish                                          # shared Maincloud rescuedb
 //   npm run generate && npm run verify:live
 //
 // SIMULATION: all data is fictional. This resets the target database's simulation state.
 import { execFileSync } from 'node:child_process';
 import { DbConnection } from '../src/module_bindings';
 
-const URI = process.env.VITE_SPACETIME_URI ?? 'ws://localhost:3000';
-const DB = process.env.VITE_SPACETIME_DB ?? 'headcount';
-const SERVER = process.env.SPACETIME_SERVER ?? 'local'; // CLI nickname, used to promote the dispatcher
+import { database as DB, uri as URI, server as SERVER } from './target.mjs';
 const ALDER = { x: 225, y: 175 };
 
 type Conn = any;
