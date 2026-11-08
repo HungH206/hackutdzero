@@ -5,7 +5,7 @@ import './agent-screen.css';
 // Neighborhood agent: who the text agent still needs to hear from, grouped by neighborhood, and the
 // controls to message them. Reads the same database as every other screen. Messages go out through the
 // text agent's local server (it holds the phone numbers; the database never does), so the buttons are off
-// when that server is not running.
+// when that server is not running. Drafts can also use the hosted /api/draft endpoint.
 
 // The agent's server. The default local address is only tried from a local page: on a deployed HTTPS
 // site, calling 127.0.0.1 makes the browser ask every visitor for local-network access. A deployed
@@ -91,12 +91,20 @@ export function AgentScreen() {
     setError(null);
     setNote('');
     try {
-      const r = await fetch(`${AGENT}/draft`, { method: 'POST', headers: { accept: 'application/json' } });
+      const r = await fetch(up ? `${AGENT}/draft` : '/api/draft', {
+        method: 'POST',
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
+        body: JSON.stringify({ active, hazards: snapshot.disasters.filter((d) => d.active).map((d) => d.kind) }),
+      });
+      if (!r.ok) {
+        const problem = await r.json().catch(() => null);
+        throw new Error(problem?.error ?? 'Draft service unavailable. Check the server configuration.');
+      }
       const j = (await r.json()) as { text: string; source: string };
       setText(j.text);
       setNote(j.source === 'model' ? 'Drafted by Gemini. Edit it, then send.' : 'Template draft. Edit it, then send.');
-    } catch {
-      setError('Could not reach the text agent to draft.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reach the draft service.');
     } finally {
       setBusy(null);
     }
@@ -152,7 +160,7 @@ export function AgentScreen() {
           </p>
         </div>
         <span className={`agents__link agents__link--${link.state === 'off' ? 'checking' : link.state}`} role="status">
-          {link.state === 'up' ? `Agent connected. ${link.joined} ${link.joined === 1 ? 'person has' : 'people have'} joined.` : link.state === 'down' ? 'Agent not reachable. Run `npm start` in photon-agent.' : link.state === 'off' ? 'Sending runs from the dispatcher laptop. Not connected on this site.' : 'Checking the agent…'}
+          {link.state === 'up' ? `Agent connected. ${link.joined} ${link.joined === 1 ? 'person has' : 'people have'} joined.` : link.state === 'down' ? 'Agent not reachable. Run `npm start` in photon-agent.' : link.state === 'off' ? 'Draft here with Gemini. Sending requires the dispatcher’s Photon agent.' : 'Checking the agent…'}
         </span>
       </header>
 
@@ -166,7 +174,7 @@ export function AgentScreen() {
           placeholder="Write a message, draft one with Gemini, or use the evacuation wording."
         />
         <div className="agents__bar">
-          <button className="hc-btn hc-btn--secondary" disabled={!up || busy === 'draft'} onClick={draft}>
+          <button className="hc-btn hc-btn--secondary" disabled={busy !== null} onClick={draft}>
             {busy === 'draft' ? 'Drafting…' : 'Draft with Gemini'}
           </button>
           <button className="hc-btn hc-btn--secondary" onClick={() => { setText(EVACUATE); setNote('Evacuation wording. Edit it, then send.'); }}>

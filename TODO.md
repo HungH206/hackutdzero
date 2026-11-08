@@ -105,3 +105,5 @@ Built on branch `monitor-dashboard` in `/spacetimedb` and tested in the SDK's in
 - [ ] How the M5GO exposes charging or battery state for `power_lost`
 - [ ] Whether loaned hardware counts for the Best Hardware track
 - [ ] That the demo network (phone hotspot) lets all devices reach the backend
+
+- [x] [Codex] Implement independent Vercel Gemini draft endpoint; build and six mocked checks pass. Deployment and live API key verification pending.
