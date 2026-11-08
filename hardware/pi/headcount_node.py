@@ -13,7 +13,8 @@ What goes to the database (report_event):
   flame  -> "flame" value 1
   heat   -> "temp" value 10 (flame + heat together confirms a fire)
   motion -> "motion" (someone is moving inside; lowers the silence penalty)
-  sound  -> local only (the module has no sound kind)
+  sound  -> "sound" (timeline note)
+  camera -> "camera" after an alert snapshot (timeline note; Gemini later)
 Plus heartbeat every 10 s. Sends run in a background thread, so a slow network
 never freezes the sensors.
 
@@ -25,7 +26,7 @@ import json, os, queue, sys, threading, time, urllib.request, urllib.error
 from collections import deque
 from datetime import datetime
 
-VERSION = "v5"
+VERSION = "v6"
 SERVER = os.environ.get("HC_SERVER", "https://maincloud.spacetimedb.com")
 DB = os.environ.get("HC_DB", "rescuedb")
 HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
@@ -38,7 +39,7 @@ DRY = "--dry" in sys.argv
 CAMERA = "--no-camera" not in sys.argv
 PLAIN = "--plain" in sys.argv
 PIR_WARMUP = int(os.environ.get("HC_PIR_WARMUP", "20"))
-COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 10, "sound": 3}  # s between reports
+COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 10, "sound": 10}  # s between reports
 
 events = deque(maxlen=10)
 lock = threading.Lock()
@@ -127,6 +128,7 @@ def camera_worker():
         cam.update(status="ready", at=time.time(), summary=r["summary"])
         if alert:
             add_event("Camera alert snapshot saved: " + path)
+            report("camera", 0.0, 0.0, "camera snapshot")
 
 # ---------- main ----------
 def main():
@@ -180,6 +182,8 @@ def main():
                 report("temp", 10.0, 5.0, "heat rise +10 C")
             elif n == "motion":
                 report("motion", 1.0, 0.0, "motion inside")
+            elif n == "sound":
+                report("sound", 1.0, 0.0, "loud noise")
 
         hot = [n for n in PINS if last_seen[n] and t - last_seen[n] < 5]
         alarm = "flame" in hot and "heat" in hot

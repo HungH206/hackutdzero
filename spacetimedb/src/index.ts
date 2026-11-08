@@ -636,6 +636,12 @@ function reportEvent(ctx: Ctx, householdId: number, kind: string, value: number,
     if (node.flame && node.tempRiseC >= FLAME_CONFIRM_TEMP_C) confirmFire(ctx, h);
   } else if (kind === 'motion') {
     ctx.db.node.householdId.update({ ...node, lastMotionMicros: at });
+  } else if (kind === 'sound') {
+    ctx.db.node.householdId.update(node);
+    log(ctx, 'sensor', 'info', h.id, `Loud noise picked up at ${h.name} (${h.unit}).`);
+  } else if (kind === 'camera') {
+    ctx.db.node.householdId.update(node);
+    log(ctx, 'sensor', 'info', h.id, `Camera snapshot taken at ${h.name} (${h.unit}); image analysis pending.`);
   } else if (kind === 'power_lost') {
     ctx.db.node.householdId.update({ ...node, onBattery: true, powerLostAtMicros: node.powerLostAtMicros || at });
   } else if (kind === 'power_restored') {
