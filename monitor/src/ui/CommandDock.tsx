@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from 'react';
 import { fmtMin, median, timesToFound, type View } from '../data/derive';
 import type { Actions, Snapshot } from '../data/types';
 import { BAND_COLOR } from './Gauges';
@@ -10,6 +10,8 @@ interface Props {
   actions: Actions;
   onSelect(id: number): void;
   onError(msg: string): void;
+  footer?: ReactNode;
+  placeholder?: string;
 }
 
 export interface DockHandle {
@@ -25,7 +27,7 @@ interface Result {
   run(): void | Promise<void>;
 }
 
-export const CommandDock = forwardRef<DockHandle, Props>(function CommandDock({ view, snapshot, actions, onSelect, onError }, ref) {
+export const CommandDock = forwardRef<DockHandle, Props>(function CommandDock({ view, snapshot, actions, onSelect, onError, footer, placeholder }, ref) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
@@ -94,9 +96,9 @@ export const CommandDock = forwardRef<DockHandle, Props>(function CommandDock({ 
 
   const stats: { icon: IconName; label: string; value: string; unit?: string }[] = [
     { icon: 'users', label: 'Accounted', value: String(c.total ? Math.round((c.accounted / c.total) * 100) : 0), unit: '%' },
-    { icon: 'clock', label: 'Median time to found', value: ttf === null ? '—' : fmtMin(ttf).replace(' min', ''), unit: ttf === null ? '' : 'min' },
-    { icon: 'heart', label: 'High-need accounted', value: `${hnAcc}/${highNeed.length}` },
-    { icon: 'zap', label: 'Next power deadline', value: nextClock === undefined ? '—' : String(Math.round(nextClock)), unit: nextClock === undefined ? '' : 'min' },
+    { icon: 'clock', label: 'Median to found', value: ttf === null ? '—' : fmtMin(ttf).replace(' min', ''), unit: ttf === null ? '' : 'min' },
+    { icon: 'heart', label: 'High-need found', value: `${hnAcc}/${highNeed.length}` },
+    { icon: 'zap', label: 'Next power clock', value: nextClock === undefined ? '—' : String(Math.round(nextClock)), unit: nextClock === undefined ? '' : 'min' },
   ];
 
   return (
@@ -118,7 +120,7 @@ export const CommandDock = forwardRef<DockHandle, Props>(function CommandDock({ 
         <input
           ref={input}
           value={q}
-          placeholder="Find a household, or type quake, fire, ff 10, reset…"
+          placeholder={placeholder ?? 'Find a household, or type quake, fire, ff 10, reset…'}
           onChange={(e) => {
             setQ(e.target.value);
             setCursor(0);
@@ -165,6 +167,7 @@ export const CommandDock = forwardRef<DockHandle, Props>(function CommandDock({ 
           </ul>
         )}
       </div>
+      {footer}
     </div>
   );
 });

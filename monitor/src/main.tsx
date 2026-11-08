@@ -5,7 +5,10 @@ import { HeadcountProvider } from './data/HeadcountProvider';
 import '@fontsource-variable/outfit';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
+import '@fontsource/roboto-condensed/400.css';
+import '@fontsource/roboto-condensed/600.css';
 import './styles.css';
+import './py.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

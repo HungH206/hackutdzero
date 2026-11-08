@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScenarioNow, useView } from './data/derive';
 import { useHeadcount } from './data/HeadcountProvider';
 import { Analytics } from './ui/Analytics';
@@ -9,32 +9,45 @@ import { EventLog } from './ui/EventLog';
 import { Icon } from './ui/Icon';
 import { Legend } from './ui/Legend';
 import { MapCanvas, type Layer } from './ui/MapCanvas';
-import { NetworkView } from './ui/NetworkView';
 import { QueuePanel } from './ui/QueuePanel';
-import { Rail, type ViewId } from './ui/Rail';
+import { Analysis } from './ui/py/Analysis';
+import { concernsOf } from './ui/py/concerns';
+import { PyDetail } from './ui/py/Detail';
+import { Drill, type Cat } from './ui/py/Drill';
+import { Graph, type GraphFilter } from './ui/py/Graph';
+import { Header, type Screen } from './ui/py/Header';
+import { PyLegend } from './ui/py/Legend';
+import { TimeRail } from './ui/py/TimeRail';
 import { Toasts, useAlerts } from './ui/Toasts';
-import { TopBar } from './ui/TopBar';
+
+const SCREENS: Screen[] = ['graph', 'tree', 'map', 'analytics', 'log'];
 
 export function App() {
   const { snapshot, actions, connection } = useHeadcount();
   const view = useView(snapshot);
   const now = useScenarioNow(snapshot.clockOffsetMicros);
-  // Deep links: ?view=analytics|log and ?h=<household id>.
-  const params = new URLSearchParams(window.location.search);
-  const [screen, setScreen] = useState<ViewId>(() => (['live', 'network', 'analytics', 'log'].includes(params.get('view') ?? '') ? (params.get('view') as ViewId) : 'live'));
-  const [hovered, setHovered] = useState<number | null>(null);
+
+  // Deep links: ?view=graph|tree|map|analytics|log, ?h=<household id>, ?b=<building id>.
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const [screen, setScreen] = useState<Screen>(() => (SCREENS.includes(params.get('view') as Screen) ? (params.get('view') as Screen) : 'graph'));
   const [selected, setSelected] = useState<number | null>(() => (params.get('h') ? Number(params.get('h')) : null));
+  const [buildingId, setBuildingId] = useState(() => Number(params.get('b') ?? 0));
+  const [cat, setCat] = useState<Cat | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [filter, setFilter] = useState<GraphFilter>('all');
+  const [analysisOpen, setAnalysisOpen] = useState(true);
   const [layers, setLayers] = useState<Set<Layer>>(() => new Set<Layer>(['heat', 'hazard', 'responders', 'outage', 'power']));
   const [error, setError] = useState<string | null>(null);
   const dock = useRef<DockHandle>(null);
   const alerts = useAlerts(snapshot.timeline);
 
-  // A selected household that no longer exists (after reset) closes the card.
   const selectedId = selected !== null && view.hh.has(selected) ? selected : null;
+  const concerns = concernsOf(view);
 
   const select = useCallback((id: number | null) => {
     setSelected(id);
-    if (id !== null) setScreen('live');
+    setScreen((s) => (id !== null && (s === 'analytics' || s === 'log') ? 'graph' : s));
   }, []);
 
   useEffect(() => {
@@ -47,7 +60,7 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setScreen('live');
+        setScreen((s) => (s === 'analytics' || s === 'log' ? 'graph' : s));
         requestAnimationFrame(() => dock.current?.focus());
       } else if (e.key === 'Escape') setSelected(null);
     };
@@ -63,88 +76,159 @@ export function App() {
       return n;
     });
 
+  const graphish = screen === 'graph' || screen === 'tree';
+  const dockEl = (
+    <CommandDock
+      ref={dock}
+      view={view}
+      snapshot={snapshot}
+      actions={actions}
+      onSelect={select}
+      onError={setError}
+      placeholder="Ask about a household, or type quake, fire, ff 10, reset…"
+      footer={
+        graphish ? (
+          <div className="py-dock-foot">
+            <span className="py-chip">
+              <Icon name="user" size={14} /> Dispatcher
+            </span>
+            <span className="py-chip">
+              <Icon name="clock" size={14} /> {view.queue.length} open
+            </span>
+            <button className={`py-chip action${analysisOpen ? ' on' : ''}`} onClick={() => setAnalysisOpen((o) => !o)} aria-pressed={analysisOpen}>
+              <Icon name="activity" size={14} /> HPI Analysis
+            </button>
+          </div>
+        ) : null
+      }
+    />
+  );
+
   return (
-    <div className={`app screen-${screen}${selectedId !== null ? ' has-detail' : ''}${view.disasterActive ? ' incident' : ''}`}>
-      <Rail
-        active={screen}
-        onChange={(v) => {
-          setScreen(v);
-          if (v === 'log') alerts.clearUnread();
-        }}
-        logCount={alerts.unread}
-      />
-      <div className="stage">
-        <MapCanvas
+    <div className={`app py-app screen-${screen === 'map' ? 'live' : screen}${selectedId !== null ? ' has-detail' : ''}${view.disasterActive ? ' incident' : ''}`}>
+      <div className="py-bg" aria-hidden="true" />
+
+      {screen === 'graph' && (
+        <>
+          <Graph view={view} zoom={zoom} filter={filter} selected={selectedId} onSelect={select} onOpenBuilding={(id) => {
+            setBuildingId(id);
+            setCat(null);
+            setScreen('tree');
+          }} />
+          <TimeRail snapshot={snapshot} now={now} />
+          <PyLegend view={view} updates={snapshot.timeline.length} />
+        </>
+      )}
+      {screen === 'tree' && (
+        <Drill
           view={view}
-          disasters={snapshot.disasters}
-          now={now}
-          layers={layers}
-          hovered={hovered}
+          buildingId={buildingId}
+          cat={cat}
+          onCat={setCat}
+          onBuilding={(id) => {
+            setBuildingId(id);
+            setCat(null);
+          }}
           selected={selectedId}
-          onHover={setHovered}
           onSelect={select}
-          onToggleLayer={toggleLayer}
         />
-        <TopBar
+      )}
+      {screen === 'graph' && (
+        <div className={`py-bottom${selectedId !== null ? ' shifted' : ''}`}>
+          {analysisOpen && view.disasterActive && concerns.length > 0 && <Analysis concerns={concerns} onSelect={select} onClose={() => setAnalysisOpen(false)} />}
+          {dockEl}
+        </div>
+      )}
+      {graphish && selectedId !== null && (
+        <PyDetail
+          key={selectedId}
+          id={selectedId}
           view={view}
           now={now}
-          offsetMicros={snapshot.clockOffsetMicros}
-          connection={connection}
-          unread={alerts.unread}
-          onBell={() => {
-            alerts.clearUnread();
-            setScreen('log');
-          }}
-          onSearch={() => {
-            setScreen('live');
-            requestAnimationFrame(() => dock.current?.focus());
-          }}
-          demo={<DemoPanel view={view} actions={actions} onError={setError} />}
+          actions={actions}
+          onClose={() => setSelected(null)}
+          onError={setError}
+          onFullRecord={() => setScreen('map')}
         />
-        {screen === 'live' && (
-          <>
-            <QueuePanel view={view} now={now} hovered={hovered} selected={selectedId} onHover={setHovered} onSelect={select} />
-            {selectedId !== null && (
-              <DetailCard
-                key={selectedId}
-                id={selectedId}
-                view={view}
-                now={now}
-                overrides={snapshot.overrides}
-                timeline={snapshot.timeline}
-                actions={actions}
-                onClose={() => setSelected(null)}
-                onError={setError}
-              />
-            )}
-            <Legend />
-            <CommandDock ref={dock} view={view} snapshot={snapshot} actions={actions} onSelect={select} onError={setError} />
-          </>
-        )}
-        {screen === 'network' && <NetworkView view={view} onSelect={select} />}
-        {(screen === 'analytics' || screen === 'log') && (
-          <div className="page">
-            {screen === 'analytics' ? (
-              <Analytics view={view} snapshot={snapshot} now={now} onSelect={select} />
-            ) : (
-              <EventLog rows={snapshot.timeline} view={view} onSelect={select} />
-            )}
-          </div>
-        )}
-        <Toasts
-          toasts={alerts.toasts}
-          onDismiss={alerts.dismiss}
-          onOpen={(t) => {
-            alerts.dismiss(t.id);
-            if (t.householdId && view.hh.has(t.householdId)) select(t.householdId);
-          }}
-        />
-        {error && (
-          <div className="err-toast glass" role="alert">
-            <Icon name="alert" size={16} /> {error}
-          </div>
-        )}
-      </div>
+      )}
+
+      {screen === 'map' && (
+        <div className="stage">
+          <MapCanvas
+            view={view}
+            disasters={snapshot.disasters}
+            now={now}
+            layers={layers}
+            hovered={hovered}
+            selected={selectedId}
+            onHover={setHovered}
+            onSelect={select}
+            onToggleLayer={toggleLayer}
+          />
+          <QueuePanel view={view} now={now} hovered={hovered} selected={selectedId} onHover={setHovered} onSelect={select} />
+          {selectedId !== null && (
+            <DetailCard
+              key={selectedId}
+              id={selectedId}
+              view={view}
+              now={now}
+              overrides={snapshot.overrides}
+              timeline={snapshot.timeline}
+              actions={actions}
+              onClose={() => setSelected(null)}
+              onError={setError}
+            />
+          )}
+          <Legend />
+          {dockEl}
+        </div>
+      )}
+
+      {(screen === 'analytics' || screen === 'log') && (
+        <div className="page">
+          {screen === 'analytics' ? <Analytics view={view} snapshot={snapshot} now={now} onSelect={select} /> : <EventLog rows={snapshot.timeline} view={view} onSelect={select} />}
+        </div>
+      )}
+
+      <Header
+        screen={screen}
+        onScreen={(s) => {
+          setScreen(s);
+          if (s === 'log') alerts.clearUnread();
+        }}
+        zoom={zoom}
+        onZoom={setZoom}
+        filter={filter}
+        onFilter={setFilter}
+        openCount={view.queue.length}
+        unread={alerts.unread}
+        now={now}
+        offsetMicros={snapshot.clockOffsetMicros}
+        connection={connection}
+        onSearch={() => {
+          if (screen !== 'graph' && screen !== 'map') setScreen('graph');
+          requestAnimationFrame(() => dock.current?.focus());
+        }}
+        onBell={() => {
+          alerts.clearUnread();
+          setScreen('log');
+        }}
+        demo={<DemoPanel view={view} actions={actions} onError={setError} />}
+      />
+
+      <Toasts
+        toasts={alerts.toasts}
+        onDismiss={alerts.dismiss}
+        onOpen={(t) => {
+          alerts.dismiss(t.id);
+          if (t.householdId && view.hh.has(t.householdId)) select(t.householdId);
+        }}
+      />
+      {error && (
+        <div className="err-toast glass" role="alert">
+          <Icon name="alert" size={16} /> {error}
+        </div>
+      )}
     </div>
   );
 }

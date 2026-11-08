@@ -29,7 +29,7 @@ export function DemoPanel({ view, actions, onError }: { view: View; actions: Act
   return (
     <div className="demo-wrap">
       <button className={`demo-btn${open ? ' on' : ''}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <Icon name="sliders" size={15} /> Demo
+        <Icon name="plus" size={15} /> New Simulation
       </button>
       {open && (
         <div className="demo-pop glass" role="dialog" aria-label="Demo controls">
