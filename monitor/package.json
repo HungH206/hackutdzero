@@ -11,7 +11,7 @@
     "dev:local": "HEADCOUNT_SOURCE=local vite --host",
     "dashboards": "node scripts/dashboards.mjs",
     "dashboards:live": "HEADCOUNT_SOURCE=spacetimedb node scripts/dashboards.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/check-bindings.mjs && tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host",
     "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb",

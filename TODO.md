@@ -4,6 +4,8 @@ Claim a task by adding your name in brackets, e.g. `[Hung]`. Tick it only when i
 
 Context: read `AGENTS.md` first, and `README.md` for the product and the HPI math.
 
+- [x] [Codex] Include generated bindings in Vercel deployments and reject builds with missing bindings; production build verified locally, hosted redeploy pending
+
 ## Done
 - [x] Idea locked: Headcount, "Everyone found."
 - [x] HPI formula, escalation ladder, power-loss clock designed (see `README.md`)
