@@ -26,7 +26,7 @@ import json, os, queue, sys, threading, time, urllib.request, urllib.error
 from collections import deque
 from datetime import datetime
 
-VERSION = "v7"
+VERSION = "v9"
 SERVER = os.environ.get("HC_SERVER", "https://maincloud.spacetimedb.com")
 DB = os.environ.get("HC_DB", "rescuedb")
 HOUSEHOLD = int(os.environ.get("HC_HOUSEHOLD", "1"))
@@ -42,7 +42,7 @@ PLAIN = "--plain" in sys.argv
 SHOCK_PULSES = int(os.environ.get("HC_SHOCK_PULSES", "4"))
 SHOCK_WINDOW = float(os.environ.get("HC_SHOCK_WINDOW", "2.0"))
 PIR_WARMUP = int(os.environ.get("HC_PIR_WARMUP", "20"))
-COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 3, "sound": 10}  # s between reports
+COOLDOWN = {"shock": 8, "flame": 15, "heat": 15, "motion": 0, "sound": 10}  # s between reports
 
 events = deque(maxlen=10)
 lock = threading.Lock()
@@ -104,34 +104,60 @@ def report(kind, value, dur, note):
     send("report_event", {"householdId": HOUSEHOLD, "kind": kind, "value": value, "durationS": dur}, note)
 
 # ---------- camera (Gemini placeholder) ----------
+FIRE_FRACTION = float(os.environ.get("HC_FIRE_FRACTION", "0.02"))  # share of the frame that must look like flame
+FIRE_FRAMES = 2       # consecutive frames needed, so one red shirt flash does not count
+FIRE_EVERY = 1.0      # seconds between colour checks
+
+def fire_fraction(rgb):
+    """Share of pixels that are bright, saturated red/orange (flame-coloured)."""
+    import numpy as np
+    r = rgb[..., 0].astype(np.int16); g = rgb[..., 1].astype(np.int16); b = rgb[..., 2].astype(np.int16)
+    fire = (r > 180) & (r - b > 90) & (g > b) & (r >= g) & (g < 200)
+    return float(fire.mean())
+
 def analyze_scene(image_path):
-    """PLACEHOLDER. Later: send image_path to Gemini, return its classification."""
+    """PLACEHOLDER for Gemini. The colour check below runs on every frame meanwhile."""
     return {"summary": "Gemini not connected yet (placeholder)", "people": None, "hazards": []}
 
 def camera_worker():
     try:
         from picamera2 import Picamera2
         c = Picamera2()
-        c.configure(c.create_still_configuration(main={"size": (1280, 720)}))
+        c.configure(c.create_video_configuration(main={"size": (320, 240), "format": "RGB888"}))
         c.start(); time.sleep(1)
         os.makedirs("captures", exist_ok=True)
         cam["status"] = "ready"
     except Exception as e:
         cam["status"] = "unavailable (%s)" % str(e)[:40]
         return
+    streak = 0; last_fire = 0.0; last_snap = 0.0
     while True:
-        alert = snap_now.wait(timeout=10)
-        snap_now.clear()
-        path = os.path.join("captures", f"alert_{datetime.now():%H%M%S}.jpg" if alert else "latest.jpg")
+        snap_now.wait(timeout=FIRE_EVERY)
+        alert = snap_now.is_set(); snap_now.clear()
         try:
-            c.capture_file(path)
+            frame = c.capture_array()[..., ::-1]  # RGB888 arrives as BGR; flip to RGB
+            frac = fire_fraction(frame)
         except Exception as e:
-            cam["status"] = "error (%s)" % str(e)[:40]; continue
-        r = analyze_scene(path)
-        cam.update(status="ready", at=time.time(), summary=r["summary"])
-        if alert:
-            add_event("Camera alert snapshot saved: " + path)
-            report("camera", 0.0, 0.0, "camera snapshot")
+            cam["status"] = "error (%s)" % str(e)[:40]; time.sleep(1); continue
+        streak = streak + 1 if frac >= FIRE_FRACTION else 0
+        cam.update(status="ready", at=time.time(), summary="flame colour %.1f%%" % (frac * 100))
+        t = time.time()
+        if streak >= FIRE_FRAMES and t - last_fire > 15:
+            last_fire = t
+            add_event("Camera sees fire colours (%.1f%% of frame)" % (frac * 100))
+            report("flame", 1.0, 0.0, "camera: fire colours")
+            report("temp", 10.0, 5.0, "camera: fire (heat assumed)")
+            alert = True
+        if alert or t - last_snap > 10:
+            last_snap = t
+            path = os.path.join("captures", f"alert_{datetime.now():%H%M%S}.jpg" if alert else "latest.jpg")
+            try:
+                c.capture_file(path)
+                analyze_scene(path)
+                if alert:
+                    add_event("Camera alert snapshot saved: " + path)
+            except Exception:
+                pass
 
 # ---------- main ----------
 def main():
@@ -160,6 +186,7 @@ def main():
     last_sent = {n: 0.0 for n in PINS}
     chirp_until = 0.0
     pulses = deque(); prev_shock = 0
+    prev_motion = 1  # ignore the HIGH it starts in
     last_hb = last_draw = 0.0
 
     while True:
@@ -176,14 +203,26 @@ def main():
             pulses.popleft()
         hard_shake = len(pulses) >= SHOCK_PULSES
 
+        # Motion: this sensor has no knobs and stays HIGH while anything moves, so a
+        # constant HIGH means nothing. Only a LOW -> HIGH change (it went quiet, then saw
+        # movement) counts. Demo pattern: cover it ~3 s, then uncover and wave.
+        m = sensors["motion"].value
+        motion_edge = m and not prev_motion
+        if not m and prev_motion:
+            add_event("Motion sensor quiet (ready)")
+        prev_motion = m
+
         for n, s in sensors.items():
-            if n == "shock":
+            if n == "motion":
+                if not motion_edge:
+                    continue
+            elif n == "shock":
                 if not hard_shake:
                     continue
                 pulses.clear()
             elif s.value == idle[n]:
                 continue
-            first = last_seen[n] is None or t - last_seen[n] > 3
+            first = n == "motion" or last_seen[n] is None or t - last_seen[n] > 3
             last_seen[n] = t
             if first:
                 add_event(f"{LABELS[n]} detected")
