@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PiEvent, PiKind, PiLevel, PiSensors, PiState } from '../../data/pi';
 import { Icon, type IconName } from '../Icon';
 
@@ -25,6 +25,44 @@ function secs(s: number | null | undefined): string {
 
 const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour12: false });
 
+type Mic = { status: 'off' | 'on' | 'denied'; level: number; lastLoud: number | null; count: number; start(): void };
+
+/** Laptop microphone as the loud-noise sensor (browser only, nothing is recorded or sent). */
+function useMic(): Mic {
+  const [m, setM] = useState({ status: 'off' as Mic['status'], level: 0, lastLoud: null as number | null, count: 0 });
+  const started = useRef(false);
+  const start = useCallback(async () => {
+    if (started.current) return;
+    started.current = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const ctx = new AudioContext();
+      const an = ctx.createAnalyser();
+      an.fftSize = 512;
+      ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.fftSize);
+      let level = 0, loud = false, count = 0, lastLoud: number | null = null;
+      window.setInterval(() => {
+        an.getByteTimeDomainData(buf);
+        let sum = 0;
+        for (const v of buf) sum += ((v - 128) / 128) ** 2;
+        const rms = Math.min(1, Math.sqrt(sum / buf.length) * 5);
+        level = Math.max(rms, level * 0.85);
+        const now = level > 0.35;
+        if (now && !loud) count++;
+        if (now) lastLoud = Date.now();
+        loud = now;
+        setM({ status: 'on', level, lastLoud, count });
+      }, 100);
+    } catch {
+      started.current = false;
+      setM((x) => ({ ...x, status: 'denied' }));
+    }
+  }, []);
+  useEffect(() => void start(), [start]);
+  return { ...m, start };
+}
+
 export function LiveSensors({ pi }: { pi: Feed }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -37,6 +75,7 @@ export function LiveSensors({ pi }: { pi: Feed }) {
   const mode: 'live' | 'warming' | 'stale' | 'error' | 'connecting' =
     pi.status === 'error' ? 'error' : stale ? 'stale' : pi.status;
   const s = pi.state;
+  const mic = useMic();
 
   // Row flash when a new trigger event arrives.
   const [flash, setFlash] = useState<Record<string, number>>({});
@@ -94,7 +133,7 @@ export function LiveSensors({ pi }: { pi: Feed }) {
 
       {s && !s.warming && mode !== 'error' && <ShockMeter s={s} tick={pi.receivedAt} dim={mode === 'stale'} />}
 
-      {s && mode !== 'error' && <Rows s={s} flash={flash} now={now} dim={mode === 'stale'} />}
+      {s && mode !== 'error' && <Rows s={s} flash={flash} now={now} dim={mode === 'stale'} mic={mic} />}
 
       {s && !s.warming && mode !== 'error' && (
         <div className="py-live-person" data-on={s.occupied ? 'yes' : 'no'}>
@@ -174,16 +213,17 @@ function ShockMeter({ s, tick, dim }: { s: PiState; tick: number; dim: boolean }
   );
 }
 
-function Rows({ s, flash, now, dim }: { s: PiState; flash: Record<string, number>; now: number; dim: boolean }) {
+function Rows({ s, flash, now, dim, mic }: { s: PiState; flash: Record<string, number>; now: number; dim: boolean; mic: Mic }) {
   return (
     <div className={`py-live-rows${dim ? ' dim' : ''}`} role="table" aria-label="Sensors">
       {ROWS.map((r) => {
         const isMotion = r.kind === 'motion';
+        const useMicRow = r.kind === 'sound' && mic.status === 'on';
         const pin = s.pins[r.kind];
-        const tripped = isMotion ? pin === 1 : pin !== s.idle[r.kind as Exclude<PiKind, 'motion'>];
-        const act = isMotion ? (s.occupied ? 1 : 0) : s.activity[r.kind as Exclude<PiKind, 'motion'>];
-        const ago = isMotion ? s.lastMotionAgo : s.lastSeenAgo[r.kind as Exclude<PiKind, 'motion'>];
-        const edges = isMotion ? s.motionCount : s.edges[r.kind as Exclude<PiKind, 'motion'>];
+        const tripped = useMicRow ? mic.level > 0.35 : isMotion ? pin === 1 : pin !== s.idle[r.kind as Exclude<PiKind, 'motion'>];
+        const act = useMicRow ? mic.level : isMotion ? (s.occupied ? 1 : 0) : s.activity[r.kind as Exclude<PiKind, 'motion'>];
+        const ago = useMicRow ? (mic.lastLoud == null ? null : (now - mic.lastLoud) / 1000) : isMotion ? s.lastMotionAgo : s.lastSeenAgo[r.kind as Exclude<PiKind, 'motion'>];
+        const edges = useMicRow ? mic.count : isMotion ? s.motionCount : s.edges[r.kind as Exclude<PiKind, 'motion'>];
         const flashing = flash[r.kind] != null && now - flash[r.kind]! < FLASH_MS;
         return (
           <div key={r.kind} className={`py-live-row kind-${r.kind}${tripped ? ' tripped' : ''}${flashing ? ' flash' : ''}`} role="row">
@@ -192,19 +232,19 @@ function Rows({ s, flash, now, dim }: { s: PiState; flash: Record<string, number
             </span>
             <span className="py-live-name">
               {r.label}
-              <small>GPIO {r.pin}</small>
+              <small>{useMicRow ? 'Laptop mic' : `GPIO ${r.pin}`}</small>
             </span>
             <span className="py-live-bar" aria-hidden="true">
               <i style={{ width: `${Math.round(Math.min(1, Math.max(0, act)) * 100)}%` }} />
             </span>
             <span className="py-live-pin" title={`pin reads ${pin}`}>
-              <b>{pin}</b>
+              <b>{useMicRow ? Math.round(mic.level * 100) : pin}</b>
               <small>{tripped ? 'tripped' : 'idle'}</small>
             </span>
             <span className="py-live-meta">
               {secs(ago)}
               <small>
-                {edges} {isMotion ? 'events' : 'edges'}
+                {edges} {useMicRow ? 'spikes' : isMotion ? 'events' : 'edges'}
               </small>
             </span>
           </div>

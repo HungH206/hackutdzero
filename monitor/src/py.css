@@ -461,3 +461,15 @@
 .py-live-row.kind-motion.flash { animation-name: py-live-flash-red; }
 .py-live-row.kind-motion.flash::before { background: var(--critical); }
 @keyframes py-live-flash-red { 0% { background: var(--critical-tint); } 100% { background: transparent; } }
+
+/* Motion: clearer than other rows, quieter than shock */
+.py-live-row.kind-motion.tripped { background: var(--critical-tint); box-shadow: inset 4px 0 0 var(--critical); }
+.py-live-row.kind-motion.tripped .py-live-name { color: var(--critical-ink); }
+.py-live-row.kind-motion.tripped .py-live-ico svg { transform: scale(1.12); }
+
+/* Loud noise (laptop mic): keep it quiet, no alert colouring */
+.py-live-row.kind-sound.tripped .py-live-ico { color: var(--label-2); }
+.py-live-row.kind-sound.tripped .py-live-bar i { background: var(--label-3); }
+.py-live-row.kind-sound.tripped .py-live-pin b { color: var(--label); }
+.py-live-row.kind-sound.flash { animation: none; }
+.py-live-row.kind-sound.flash::before { display: none; }
