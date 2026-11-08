@@ -3,7 +3,7 @@
 node_modules/
 dist/
 *.log
-monitor/src/module_bindings/
+# Generated SpacetimeDB bindings are committed so Vercel can build without the CLI.
 
 # Local design references (never commit)
 design-refs/

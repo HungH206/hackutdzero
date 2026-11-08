@@ -237,7 +237,7 @@ Update this table honestly before submitting.
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
 | SpacetimeDB module (tables and reducers) | Built in `/spacetimedb`; 85 automated tests. Published to **Maincloud `rescuedb`** on Nov 8, 2026, with 40 synthetic households. The existing `rescuegrid-dev` database was left untouched. **20/20 live SDK checks passed** against Maincloud (sync, authorization, token reuse, scoring and escalation). |
 | Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
-| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: 3D model of the neighborhood with the dispatch queue (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. |
+| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: 3D model of the neighborhood with the dispatch queue (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. Production build and typecheck pass against bindings generated from the published module. The SDK subscription path is verified by `verify:live`; the React dashboard itself has **not been driven in two real browser windows**. Shows a persistent SIMULATION label. Vercel source now includes generated client bindings and a missing-bindings build check; local production build passes, hosted redeploy pending. |
 | Live priority map | Built (SVG basemap drawn in-app, works offline) |
 | In-house wall screen (M5GO) | Planned |
 | Phone web app | Planned |
@@ -249,6 +249,12 @@ Update this table honestly before submitting.
 | "Found curve" simulation vs. first-come-first-served baseline | Planned |
 
 ## Running it
+
+### Vercel frontend
+
+Set Root Directory to `monitor`, Framework to Vite, Build Command to `npm run build`, and Output Directory to `dist`. Enable access to files outside the root directory because the Vite configuration imports the sibling backend module. Set `VITE_SPACETIME_URI=wss://maincloud.spacetimedb.com` and `VITE_SPACETIME_DB=rescuedb` in Vercel, then redeploy. The names `VITE_SPACETIMEDB_HOST` and `VITE_SPACETIMEDB_DB_NAME` are not read by this monitor.
+
+Generated `monitor/src/module_bindings` files are included in Git so fresh deployments have the client schema without installing the SpacetimeDB CLI. Regenerate and commit them when the module schema changes. The build rejects missing bindings instead of producing a dashboard that cannot connect. Promote the deployed browser identity separately from localhost.
 
 ### Shared live database (Maincloud)
 
