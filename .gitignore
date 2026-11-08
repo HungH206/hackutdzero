@@ -1,2 +1,5 @@
 .rocketride/
 .env
+node_modules/
+dist/
+*.log

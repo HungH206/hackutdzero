@@ -156,6 +156,13 @@ Cheapest action first. Responders only get the people who fail earlier steps.
 
 Waits shrink as HPI grows, so a very high-risk household skips ahead. An "OK" at any step resolves it.
 
+Current implementation values (in `spacetimedb/src/hpi.ts` and `spacetimedb/src/index.ts`; starting design values, not validated):
+- Wait at each step: $\max(1,\ 6 \cdot (1 - 0.75 \cdot HPI/100))$ minutes, so 6 min at HPI 0 and 1.5 min at HPI 100.
+- A household at **HPI 85 or above** goes from step 1 straight to step 4.
+- A check-in prompt becomes "no response" ($C = 0.7$) after **3 minutes**.
+- Pressing "I need help" marks the household *Found, needs help* and goes straight to step 4.
+- **Silence $s$:** a node that keeps sending heartbeats is not silent ($s = 0$), even if nobody presses a button. That case is still escalated through $C = 0.7$. Silence grows only when the node itself stops reporting.
+
 ## Live priority map
 
 The map on the monitor dashboard shows, in real time, which homes need urgent care the most. It is the visual form of the HPI.
@@ -226,22 +233,67 @@ Update this table honestly before submitting.
 |---|---|
 | Concept, HPI formula, escalation design | Done (design) |
 | Agent context and to-do list (`AGENTS.md`, `TODO.md`) | Done |
-| SpacetimeDB module (tables and reducers) | In progress |
-| Household simulator (synthetic data) | Planned |
-| Monitor dashboard (counter, ranked queue, ladder) | Planned |
-| Live priority map | Planned |
+| SpacetimeDB module (tables and reducers) | Built in `/spacetimedb` and tested in SpacetimeDB's in-memory test datastore (13 tests, including the three worked examples). **Not yet published to a real SpacetimeDB server.** Needs reconciling with Hung's schema. |
+| Household simulator (synthetic data) | Built as demo-only `sim_*` reducers in the module (40 synthetic households, 5 hero cases) |
+| Monitor dashboard (counter, ranked queue, ladder) | Built in `/monitor`: network graph (home screen), building drill-down, live map, analytics, event log. Verified against the local fallback. The live SpacetimeDB connection is written but **untested** until bindings are generated. |
+| Live priority map | Built (SVG basemap drawn in-app, works offline) |
 | In-house wall screen (M5GO) | Planned |
 | Phone web app | Planned |
-| CBRE operations dashboard | Planned |
-| Demo control panel (trigger events, fast-forward time) | Planned |
+| CBRE operations dashboard | Built as `/?app=cbre` in the monitor app. Reads the same live events; property and dollar figures are **synthetic** and come from a simple estimate model (see "CBRE view" below). |
+| Demo control panel (trigger events, fast-forward time) | Built into the monitor dashboard |
 | Node firmware (heartbeat, shake classifier, buttons) | Planned |
-| Power-loss clock | Planned |
-| Escalation ladder | Planned |
+| Power-loss clock | Built in the module (simulated power loss; real `power_lost` from nodes not yet tested) |
+| Escalation ladder | Built in the module (steps 2-4 are simulated outcomes) |
 | "Found curve" simulation vs. first-come-first-served baseline | Planned |
 
 ## Running it
 
-*Setup instructions will be added once the code is in the repo.*
+### Backend: SpacetimeDB module (`/spacetimedb`)
+
+```bash
+cd spacetimedb
+npm install
+npm test            # HPI worked examples + full scenario in the in-memory test datastore
+npm run typecheck
+```
+
+To run it for real, install the SpacetimeDB CLI ([spacetimedb.com/install](https://spacetimedb.com/install)), then:
+
+```bash
+spacetime start                                  # local server on ws://localhost:3000
+spacetime publish --module-path spacetimedb headcount
+```
+
+The CLI commands above have not been run yet. Check flag names against `spacetime publish --help` for your CLI version.
+
+### Monitor dashboard (`/monitor`)
+
+```bash
+cd monitor
+npm install
+npm run dev:local   # no server needed: runs the module in-process (local fallback)
+```
+
+With a published module instead:
+
+```bash
+npm run generate    # spacetime generate -> src/module_bindings
+npm run dev         # connects to VITE_SPACETIME_URI / VITE_SPACETIME_DB (see .env.example)
+```
+
+**Local fallback.** `dev:local` runs this repo's actual module code, including `recompute_hpi`, inside SpacetimeDB's official in-memory test datastore, which runs in the Vite dev server. It exists for development and as a demo backup if the server or network fails. It is not a SpacetimeDB server: there is no persistence and no multi-client sync. The header shows which source is live.
+
+Use **New Simulation** in the header to trigger a quake, power loss, fire or comms outage, and to fast-forward time.
+
+One port per dashboard: `npm run dashboards` (from `monitor/`) starts one local dev server and opens each dashboard on its own localhost port. All ports forward to the same server, so they share one simulation. Ports live in `monitor/dashboards.json`: 5180 network graph, 5181 operations overview, 5182 houses, 5183 live map, 5184 building view, 5185 analytics, 5186 CBRE. Use `npm run dashboards:live` for the published SpacetimeDB module, `-- --attach` to reuse a dev server already on 5179, and `-- --lan` to listen on all interfaces (phone, Pi, Tailscale).
+
+Screens and deep links: `/` network graph, `/?view=overview` operations overview (per-building unit layout and waiting list), `/?view=tree&b=<building>` building view, `/?view=houses` neighborhood view with every home drawn as a house, `/?view=map` live map, `/?view=analytics`, `/?view=log`, `/?h=<household>` opens a household, `/?app=cbre` property operations. Orb artwork can be swapped by dropping PNGs into `monitor/src/assets/orbs/` (names in the README there).
+
+### CBRE view (estimate model)
+
+The CBRE screen turns the same live events into per-building operational impact. It does **not** use or change the HPI and never ranks people. Inputs: confirmed quake epicenters (shaking at a building falls off linearly to zero at 520 map units), confirmed fires, and the share of nearby nodes on battery (buildings without their own nodes, the office and warehouse, use homes within 260 units, labeled "inferred"). Each building system (structure, elevator, power, HVAC, fire suppression, water) gets a failure probability from those inputs and the building's risk score. Expected downtime is the largest system downtime weighted by its probability (+48 h with a fire); expected repair cost is the probability-weighted sum. Revenue at risk = hourly revenue × occupancy × min(horizon, downtime) × max(failure odds, 0.6 × power-out share), plus a quarter month of revenue with a fire. All rents, costs, tenants and repair figures in `monitor/src/cbre/portfolio.ts` are invented.
+
+The finance panel (`monitor/src/cbre/finance.ts`) re-prices those estimates with **synthetic** insurance and operating assumptions. Gross loss = revenue at risk over the horizon + expected repair cost. Deductible = 2% of building value when the loss is quake-driven (shaking > 5% and no fire), otherwise a flat $25,000. Property claim = max(0, repairs − deductible). Loss-of-rents claim = revenue lost after a 72 h waiting period. Retained loss = max(0, gross − property claim − loss-of-rents claim). Annual NOI = 12 × monthly revenue × occupancy × (1 − operating-expense ratio), with ratios of 0.42 multifamily, 0.38 office and 0.18 warehouse; NOI impact = retained loss ÷ annual NOI. The cash-flow chart books lost rent as it accrues and spreads repairs (and the matching property claim) evenly across the predicted downtime. None of this is a real policy, quote or forecast.
 
 ## The "found curve" (planned)
 
