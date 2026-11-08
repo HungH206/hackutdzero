@@ -20,6 +20,11 @@ BUZZER_PIN = 25
 WEIGHTS = {"flame": 45, "heat": 30, "shock": 25, "sound": 10}
 HALF_LIFE = {"flame": 8, "heat": 20, "shock": 6, "sound": 4}
 OCCUPIED_FOR = 60
+_env = __import__("os").environ.get
+MOTION_HOLD = float(_env("HC_MOTION_HOLD", "3"))        # seconds the PIR must stay high
+MOTION_EDGES = int(_env("HC_MOTION_EDGES", "3"))        # or this many re-triggers...
+MOTION_WINDOW = float(_env("HC_MOTION_WINDOW", "8"))    # ...within this many seconds
+MOTION_COOLDOWN = float(_env("HC_MOTION_COOLDOWN", "20"))  # min seconds between motion events
 WARMUP = float(__import__("os").environ.get("HC_WARMUP", "10"))
 BEEP = __import__("os").environ.get("HC_BUZZER", "1") == "1"
 
@@ -76,6 +81,8 @@ last_seen = {n: None for n in PINS}
 last_motion = None
 motion_total = 0
 prev_motion = 0
+high_since = None
+rises = []
 last_tick = last_out = time.monotonic()
 out({"type": "event", "kind": "online", "t": time.time()})
 
@@ -94,8 +101,17 @@ while True:
             last_seen[n] = now
             activity[n] = 1.0
     m = motion.value
-    if m:
-        if last_motion is None or now - last_motion > OCCUPIED_FOR or not prev_motion:
+    # Motion only counts when it is held high for MOTION_HOLD s, or re-triggers
+    # MOTION_EDGES times within MOTION_WINDOW s. A single blip is ignored.
+    if m and not prev_motion:
+        high_since = now
+        rises.append(now)
+    if not m:
+        high_since = None
+    rises = [x for x in rises if now - x <= MOTION_WINDOW]
+    confirmed = bool(m) and ((high_since is not None and now - high_since >= MOTION_HOLD) or len(rises) >= MOTION_EDGES)
+    if confirmed:
+        if last_motion is None or now - last_motion > MOTION_COOLDOWN:
             motion_total += 1
             out({"type": "event", "kind": "motion", "t": time.time()})
         last_motion = now
