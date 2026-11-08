@@ -3,6 +3,7 @@
 node_modules/
 dist/
 *.log
+monitor/src/module_bindings/
 
 # Local design references (never commit)
 design-refs/

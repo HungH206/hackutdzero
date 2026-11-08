@@ -5,13 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "db:start": "spacetime start",
+    "db:status": "spacetime sql --server local headcount \"SELECT COUNT(*) AS households FROM household\"",
+    "db:publish": "spacetime publish --server local --module-path ../spacetimedb --delete-data=never headcount",
     "dev:local": "HEADCOUNT_SOURCE=local vite --host",
     "dashboards": "node scripts/dashboards.mjs",
     "dashboards:live": "HEADCOUNT_SOURCE=spacetimedb node scripts/dashboards.mjs",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host",
-    "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb"
+    "generate": "spacetime generate --lang typescript --out-dir src/module_bindings --module-path ../spacetimedb",
+    "promote": "node scripts/promote.mjs",
+    "verify:live": "rolldown scripts/verify-live.ts --file node_modules/.cache/verify-live.mjs --format esm --platform node && node node_modules/.cache/verify-live.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
