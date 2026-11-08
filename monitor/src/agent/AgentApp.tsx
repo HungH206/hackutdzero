@@ -6,6 +6,8 @@ import './agent.css';
 import { useHeadcount } from '../data/HeadcountProvider';
 import { STEP_LABEL, agoText, clockText, useView } from '../data/derive';
 import type { Household } from '../data/types';
+import { LiveSensorBadge, sensorState } from '../ui/LiveSensor';
+import '../ui/live-sensor.css';
 
 // State Farm agent view: the household-to-agent hand-off. Read-only on the
 // priority table (AGENTS.md rule 4). Every policyholder and action here is
@@ -82,8 +84,9 @@ export function AgentApp() {
         <aside className="hc-panel ag-list">
           {hero && (
             <button className={`ag-hero${sel === HERO_ID ? ' on' : ''}`} onClick={() => setSel(HERO_ID)}>
-              <div className="ag-kicker">{hero.simulated ? 'Demo household · Pi node not connected' : 'Live device · real sensor node'}</div>
+              <div className="ag-kicker">{sensorState(hero, view.node.get(HERO_ID), now).live ? 'Live device · real sensor node' : 'Demo household'}</div>
               <Row h={hero} view={view} />
+              <LiveSensorBadge h={hero} n={view.node.get(HERO_ID)} now={now} compact />
             </button>
           )}
           {GROUPS.map((g) => {
@@ -102,7 +105,7 @@ export function AgentApp() {
           })}
         </aside>
 
-        {h && <Detail h={h} view={view} now={now} timeline={snapshot.timeline.filter((t) => t.householdId === h.id).slice(-12).reverse()}
+        {h && <Detail h={h} view={view} now={now} timeline={snapshot.timeline.filter((t) => t.householdId === h.id).sort((a, b) => b.atMicros - a.atMicros).slice(0, 12)}
           done={done} onToggle={(k) => setDone((d) => ({ ...d, [k]: !d[k] }))} />}
       </main>
       <footer className="ag-foot">Synthetic data. Headcount shares a household with its agent only after the household is found; ranking is by need only, never policy value. No real claims, calls or messages are made.</footer>
@@ -154,7 +157,7 @@ function Detail({ h, view, now, timeline, done, onToggle }: {
       <div className="ag-head">
         <h1 className="ag-h1">{h.name}</h1>
         <span className={`ag-tag t-${GROUPS.find((x) => x.id === g)!.tone}`}>{GROUPS.find((x) => x.id === g)!.label}</span>
-        {!h.simulated && <span className="ag-tag t-assisted">Live sensor</span>}
+        <LiveSensorBadge h={h} n={n} now={now} />
       </div>
 
       <div className={`hc-alert ag-share ${shared ? 'is-shared' : ''}`}>

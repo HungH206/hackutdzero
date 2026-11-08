@@ -66,6 +66,9 @@ export function Header(p: Props) {
                 <Icon name={n.icon} size={16} /> {n.label}
               </button>
             ))}
+            <a className="py-menu-link" href="/?app=agent" onClick={() => setMenu(false)}>
+              <Icon name="home" size={16} /> State Farm agent view
+            </a>
           </nav>
         )}
       </div>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { agoText, CHECKIN_LABEL, FINAL_LABEL, STEP_LABEL, type View } from '../../data/derive';
 import type { Actions } from '../../data/types';
 import { Icon } from '../Icon';
+import { LiveSensorBadge } from '../LiveSensor';
+import '../live-sensor.css';
 
 interface Props {
   id: number;
@@ -57,6 +59,7 @@ export function PyDetail({ id, view, now, actions, onClose, onError, onFullRecor
           <Icon name="x" size={15} />
         </button>
       </div>
+      <LiveSensorBadge h={h} n={n} now={now} />
       <h2 className="py-d-title">
         {h.name}
         <span>
