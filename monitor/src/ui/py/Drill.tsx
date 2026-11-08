@@ -2,7 +2,9 @@ import type { View } from '../../data/derive';
 import type { Household } from '../../data/types';
 import { iconPath, type IconName } from '../Icon';
 import { kindOf } from './kind';
-import { FocusOrb, Orb, OrbDefs } from './Orb';
+import { OrbDefs } from './Orb';
+
+const KIND_FILL: Record<string, string> = { ember: 'var(--critical)', amber: 'var(--waiting)', violet: 'var(--assisted)', slate: 'var(--unknown)' };
 
 // Building view, after the reference's drill-down: focus orb on the left,
 // category cards in the middle, households fanned out along an arc.
@@ -102,7 +104,7 @@ export function Drill({ view, buildingId, cat, onCat, onBuilding, selected, onSe
             </>
           )}
         </text>
-        <FocusOrb x={OX} y={OY} r={30} seed={buildingId + 1} tone={worst >= 75 ? 'ember' : 'focus'} />
+        <rect x={OX - 64} y={OY - 44} width={128} height={88} rx={16} className={`py-focus-card${worst >= 75 ? ' hot' : ''}`} />
         <g transform={`translate(${OX - 40} ${OY + 92})`}>
           <path d="M6 0 H80 L74 22 H0 Z" className="py-tag" />
           <text x={40} y={15} className="py-tag-t lg">
@@ -152,11 +154,11 @@ export function Drill({ view, buildingId, cat, onCat, onBuilding, selected, onSe
           const kind = kindOf(view, p.h);
           const e = view.esc.get(p.h.id);
           const on = selected === p.h.id;
-          const color = kind === 'ember' ? '#ff5d74' : kind === 'amber' ? '#e9c46a' : kind === 'violet' ? '#b39dff' : kind === 'slate' ? '#7c8a8f' : '#5fd3a6';
+          const color = KIND_FILL[kind] ?? 'var(--ok)';
           return (
             <g key={p.h.id} className="py-node" role="button" tabIndex={0} onClick={() => onSelect(p.h.id)} onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(p.h.id)} aria-label={`${p.h.name}${pr?.scored ? `, HPI ${pr.hpi.toFixed(0)}` : ''}`}>
               <rect x={p.x - 10} y={p.y - 18} width={210} height={38} fill="transparent" />
-              <Orb kind={kind} x={p.x} y={p.y} r={4.5} bezel={false} bloom={2.4} />
+              <rect x={p.x - 5} y={p.y - 5} width={10} height={10} rx={3} style={{ fill: KIND_FILL[kind] ?? 'var(--ok)' }} />
               <text x={p.x + 14} y={p.y - 3} className={`py-item${on ? ' on' : ''}`}>
                 {p.h.name.length > 18 ? `${p.h.name.slice(0, 17)}…` : p.h.name} <tspan className="py-item-u">{p.h.unit}</tspan>
               </text>
